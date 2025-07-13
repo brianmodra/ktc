@@ -8,10 +8,10 @@ bash:
 	docker exec -it ktc bash
 
 docker_build:
-	docker build -t ktc .
+	docker build -t ktc dart/
 
 run:
-	docker run --name ktc --mount type=bind,src=.,dst=/workspace/ktc -d -p 127.0.0.1:8088:8080 ktc
+	docker run --name ktc --mount type=bind,src=dart/,dst=/workspace/ktc -d -p 127.0.0.1:8088:8080 ktc
 
 clean:
 	docker container stop ktc
