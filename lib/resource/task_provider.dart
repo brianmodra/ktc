@@ -10,10 +10,10 @@ class TaskProvider {
     if (task == null) {
       return Task.empty();
     }
-    return Task(id: task['id'], title: task['title'], description: task['description']);
+    return Task(id: task['id'], type: TaskType.fromString(task['type']), state: TaskState.fromString(task['state']), name: task['name'], value: task['value']);
   }
 
-  Future<void> createTask(Map<String, dynamic> body) async {
-    await db.collection('tasks').insertOne(body);
+  Future<void> createTask(Task task) async {
+    await db.collection('tasks').insertOne(task.toJson());
   }
 }
