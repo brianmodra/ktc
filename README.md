@@ -1,39 +1,80 @@
 # KTC
 
-## URL handling
+## Documentation of Standard Vocabularies Used in the KTC Project
 
-The mechanism for handling HTTP requests in an API service can be described as
-a knowledge graph where the SPO (Subject, Predicate, Object) tuples can
-be broken down using the following example:
+This project now uses established semantic web vocabularies where possible,
+falling back to custom "ktc:" namespace only when standard semantics don't match.
 
-method - GET/POST./etc to path ```/path/{with_bound_path}?query=value&parameter=values```
-with an authorised user, and headers, e.g. ```"Header-context: values"```
-handled by a controller and handler functions (one per method qualified by query parameters)
+## STANDARD VOCABULARIES USED:
 
-- Each endpoint (URL path) as an instance of api:Endpoint
-- Each method (GET, POST, etc.) as an instance of api:Method
-- Each handler as a resource (URI or function identifier)
-- Each controller as a class or instance managing a set of handlers
+- RDF (http://www.w3.org/1999/02/22-rdf-syntax-ns#)
+    - rdf:type - for typing resources
+    - rdf:subject, rdf:predicate, rdf:object - for reified relation triples
 
-Example of the associated ontology:
+- RDFS (http://www.w3.org/2000/01/rdf-schema#) 
+    - rdfs:label - for text content of sentences and words
 
-@prefix api: <http://ktc.com/api#> .
-@prefix http: <http://www.w3.org/2011/http#> .
-@prefix ktc: <http://ktc.com/resource#> .
+- Dublin Core Terms (http://purl.org/dc/terms/)
+    - dcterms:hasPart - containment relationships (document->chapter, chapter->paragraph, etc.)
+    - dcterms:isPartOf - reverse containment (paragraph isPartOf chapter, etc.)
+    
+- Dublin Core Types (http://purl.org/dc/dcmitype/)
+    - dcmitype:Text - for document type classification
+    
+- PROV (http://www.w3.org/ns/prov#)
+    - prov:wasDerivedFrom - links relation triples to their source sentences
+    - prov:qualityMeasure - confidence scores for extracted relations
+    
+- NIF Core (http://persistence.uni-leipzig.org/nlp2rdf/ontologies/nif-core#)
+    - nif:nextChapter, nif:nextParagraph, nif:nextSentence, nif:nextWord
+    (Text sequencing and ordering properties for NLP processing)
+    - nif:Chapter, nif:Paragraph, nif:Sentence, nif:Word
+    (Document structure types for text annotation and processing)
 
-ktc:Endpoint1 a api:Endpoint ;
-    api:path "/path/{with_bound_path}" ;
-    api:handledBy ktc:Controller1 ;
-    api:requiresAuthentication true .
+- OLiA http://purl.org/olia/olia.owl# includes a class hierarchy for punctuation as part of its Part-of-Speech ontology.
+    - olia:Punctuation, olia:FullStop, olia:QuestionMark, olia:ExclamationMark
+    e.g.
+```
+    a nif:Word , olia:QuestionMark ;
+    nif:anchorOf "?" ;
+```
+    
+## CUSTOM VOCABULARY (ktc: namespace) RETAINED FOR:
 
-ktc:Controller1 a api:Controller ;
-    api:hasMethod ktc:Method_GET .
+- Domain-Specific Relations:
+    - ktc:relation/* - extracted semantic relations (domain-specific)
+    
+- Entity URIs:
+    - ktc:entity/* - named entities from text (domain-specific)
+    
+## BENEFITS OF STANDARD VOCABULARIES:
+ 
+- Interoperability with other semantic web datasets
+- Established semantics understood by tools and reasoners
+- Better SPARQL query compatibility across systems
+- Follows semantic web best practices
+- Enables reasoning with standard ontologies
+ 
+## EXAMPLE SPARQL QUERIES WITH STANDARD VOCABULARIES:
 
-ktc:Method_GET a api:Method ;
-    api:httpMethod "GET" ;
-    api:hasQueryParam "query=value" , "parameter=values" ;
-    api:handledBy ktc:HandlerFunction1 ;
-    api:hasHeader [ api:headerName "Header-context" ; api:headerValue "values" ] .
+### Find all parts of a document using Dublin Core
+```
+SELECT ?part WHERE {
+  ?document dcterms:hasPart+ ?part .
+}
+```
 
-ktc:HandlerFunction1 a api:Handler ;
-    api:functionName "getItems" .
+### Find high-confidence relations using PROV
+```
+SELECT ?triple WHERE {
+  ?triple prov:qualityMeasure ?confidence .
+  FILTER(?confidence > 0.8)
+}
+```
+
+### Get text content using RDFS
+```
+SELECT ?text WHERE {
+  ?sentence rdfs:label ?text .
+}
+```
