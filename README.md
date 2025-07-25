@@ -1,5 +1,13 @@
 # KTC
 
+Note! This is a POC.
+
+As such, it is possible I have checked in half working code, or forgotten to check in something.
+I'm in the middle of integrating with a tripple extractor written in Python, and adding a PHP/Vue/Typescript simple web front end.
+None of that is checked in yet. The Java-based OpenIE is old and not as nimble as the newer one in Python, but I want to use the Java
+Pekko and Jena back end for scalability, using other libraries in other languages where appropriate. Connection to Python
+will be via an actor that communicates to the Python program.
+
 ## Documentation of Standard Vocabularies Used in the KTC Project
 
 This project now uses established semantic web vocabularies where possible,

@@ -1,1 +1,12 @@
 dart/.dart_tool/
+**/.DS_Store
+.DS_Store
+.bsp/
+.classpath
+.metals/
+.project
+.settings/
+.vscode/
+project/project/
+project/target/
+target/
