@@ -8,6 +8,27 @@ None of that is checked in yet. The Java-based OpenIE is old and not as nimble a
 Pekko and Jena back end for scalability, using other libraries in other languages where appropriate. Connection to Python
 will be via an actor that communicates to the Python program.
 
+## Projects
+
+### The Java service is set up as a Maven project:
+```
+mvn compile
+mvn test-compile
+mvn exec:java -Dexec.mainClass="com.ktc.App"
+```
+
+### The PHP web service is in the ktc-web directory. It is a Codeignite 4 / Vue project.
+It uses vite, so you need to start that also:
+```
+npm run dev
+```
+Then to start the  web service:
+```
+php spark serve --port 8888
+```
+
+### The Python project is in the triple_extractor directory
+
 ## Documentation of Standard Vocabularies Used in the KTC Project
 
 This project now uses established semantic web vocabularies where possible,
