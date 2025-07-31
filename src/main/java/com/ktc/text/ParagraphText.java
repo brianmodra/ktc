@@ -1,44 +1,88 @@
 package com.ktc.text;
 
-import java.util.ArrayList;
-import java.util.stream.Collectors;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-public class ParagraphText extends DocumentBaseText {
-  private ArrayList<SentenceText> sentences;
+import org.apache.jena.rdf.model.Property;
 
-  public ParagraphText(ArrayList<SentenceText> sentences) {
-    super(); // Generates UUID in base class
-    this.setSentences(sentences);
+public class ParagraphText extends NodeBase<ParagraphText> {
+
+  public ParagraphText() {
+    super(PARAGRAPH_TYPE);
   }
 
-  public ParagraphText(ArrayList<SentenceText> sentences, UUID paragraphId) {
-    super(paragraphId); // Uses provided UUID
-    this.setSentences(sentences);
+  public ParagraphText(UUID paragraphId) {
+    super(PARAGRAPH_TYPE, paragraphId);
   }
 
-  public ArrayList<SentenceText> getSentences() {
-    return sentences;
+  public SentenceText getFirstSentence() {
+    return (SentenceText) firstChildNode();
   }
 
-  public void setSentences(ArrayList<SentenceText> sentences) {
-    this.sentences = sentences;
-    sentences.forEach(sentence -> sentence.setParent(this));
+  public SentenceText getLastSentence() {
+    return (SentenceText) lastChildNode();
+  }
+
+  public ParagraphText getNext() {
+    return (ParagraphText) getNextNode();
+  }
+
+  public ParagraphText getPrevious() {
+    return (ParagraphText) getPreviousNode();
+  }
+
+  public void setNext(ParagraphText next) {
+    setNextNode(next);
+  }
+
+  public void setPrevious(ParagraphText previous) {
+    setPreviousNode(previous);
+  }
+
+  public List<SentenceText> getSentences() {
+    return getChildNodes();
+  }
+
+  public void setParent(ChapterText parent) {
+    setParentNode(parent);
+  }
+
+  public ChapterText getParent() {
+    return (ChapterText) getParentNode();
   }
 
   public void addSentence(SentenceText sentence) {
-    this.sentences.add(sentence);
-    sentence.setParent(this);
+    addChildNode(sentence);
   }
 
   public void addSentence(int index, SentenceText sentence) {
-    this.sentences.add(index, sentence);
-    sentence.setParent(this);
+    addChildNode(index, sentence);
+  }
+
+  @Override
+  public String getChildKey() {
+    return "sentence";
+  }
+
+  @Override
+  public String getKey() {
+    return "paragraph";
+  }
+
+  @Override
+  public Property getNextProperty() {
+    return Link.NEXT_PARAGRAPH;
+  }
+
+  @Override
+  public Property getPreviousProperty() {
+    return Link.PREVIOUS_PARAGRAPH;
   }
 
   public String getSentencesAsString() {
-    return this.sentences.stream()
-                      .map(SentenceText::getPhrasesAsString)
+    return getSentences().stream()
+                      .map(SentenceText::getTokensAsString)
                       .collect(Collectors.joining(" "));
   }
 

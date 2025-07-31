@@ -1,38 +1,89 @@
 package com.ktc.text;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-public class ChapterText extends DocumentBaseText {
-  private ArrayList<ParagraphText> paragraphs;
+import org.apache.jena.rdf.model.Property;
 
-  public ChapterText(ArrayList<ParagraphText> paragraphs) {
-    super(); // Generates UUID in base class
-    this.setParagraphs(paragraphs);
+public class ChapterText extends NodeBase<ChapterText> {
+
+  public ChapterText() {
+    super(CHAPTER_TYPE);
   }
 
-  public ChapterText(ArrayList<ParagraphText> paragraphs, UUID chapterId) {
-    super(chapterId); // Uses provided UUID
-    this.setParagraphs(paragraphs);
+  public ChapterText(UUID chapterId) {
+    super(CHAPTER_TYPE, chapterId);
   }
 
-  public ArrayList<ParagraphText> getParagraphs() {
-    return paragraphs;
+  public List<ParagraphText> getParagraphs() {
+    return getChildNodes();
   }
 
-  public void setParagraphs(ArrayList<ParagraphText> paragraphs) {
-    this.paragraphs = paragraphs;
-    paragraphs.forEach(paragraph -> paragraph.setParent(this));
+  public ParagraphText getFirstParagraph() {
+    return (ParagraphText) firstChildNode();
+  }
+
+  public ParagraphText getLastParagraph() {
+    return (ParagraphText) lastChildNode();
   }
 
   public void addParagraph(ParagraphText paragraph) {
-    this.paragraphs.add(paragraph);
-    paragraph.setParent(this);
+    addChildNode(paragraph);
   }
 
   public void addParagraph(int index, ParagraphText paragraph) {
-    this.paragraphs.add(index, paragraph);
-    paragraph.setParent(this);
+    addChildNode(index, paragraph);
+  }
+
+  public void setParent(DocumentText parent) {
+    setParentNode(parent);
+  }
+
+  public DocumentText getParent() {
+    return (DocumentText) getParentNode();
+  }
+
+  public ChapterText getNext() {
+    return (ChapterText) getNextNode();
+  }
+
+  public ChapterText getPrevious() {
+    return (ChapterText) getPreviousNode();
+  }
+
+  public void setNext(ChapterText next) {
+    setNextNode(next);
+  }
+
+  public void setPrevious(ChapterText previous) {
+    setPreviousNode(previous);
+  }
+
+  @Override
+  public String getChildKey() {
+    return "paragraph";
+  }
+
+  @Override
+  public String getKey() {
+    return "chapter";
+  }
+
+  @Override
+  public Property getNextProperty() {
+    return Link.NEXT_CHAPTER;
+  }
+
+  @Override
+  public Property getPreviousProperty() {
+    return Link.PREVIOUS_CHAPTER;
+  }
+
+  public String getParagraphsAsString() {
+    return getParagraphs().stream()
+                          .map(ParagraphText::toString)
+                          .collect(Collectors.joining("\n"));
   }
 
   @Override

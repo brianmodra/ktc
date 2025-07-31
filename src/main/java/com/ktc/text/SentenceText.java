@@ -1,44 +1,87 @@
 package com.ktc.text;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class SentenceText extends DocumentBaseText {
-  private ArrayList<PhraseText> phrases;
+import org.apache.jena.rdf.model.Property;
 
-  public SentenceText(ArrayList<PhraseText> phrases) {
-    super(); // Generates UUID in base class
-    this.setPhrases(phrases);
+public class SentenceText extends NodeBase<SentenceText> {
+  public SentenceText() {
+    super(SENTENCE_TYPE);
   }
 
-  public SentenceText(ArrayList<PhraseText> phrases, UUID sentenceId) {
-    super(sentenceId); // Uses provided UUID
-    this.setPhrases(phrases);
+  public SentenceText(UUID sentenceId) {
+    super(SENTENCE_TYPE, sentenceId);
   }
 
-  public ArrayList<PhraseText> getPhrases() {
-    return phrases;
+  public TokenText lastToken() {
+    return (TokenText) lastChildNode();
   }
 
-  public void setPhrases(ArrayList<PhraseText> phrases) {
-    this.phrases = phrases;
-    phrases.forEach(phrase -> phrase.setParent(this));
+  public TokenText firstToken() {
+    return (TokenText) firstChildNode();
   }
 
-  public void addPhrase(PhraseText phrase) {
-    this.phrases.add(phrase);
-    phrase.setParent(this);
+  public List<TokenText> getTokens() {
+    return getChildNodes();
   }
 
-  public void addPhrase(int index, PhraseText phrase) {
-    this.phrases.add(index, phrase);
-    phrase.setParent(this);
+  public void addToken(TokenText token) {
+    addChildNode(token);
   }
 
-  public String getPhrasesAsString() {
-    return this.phrases.stream()
-                      .map(PhraseText::getWordsAsString)
+  public void addToken(int index, TokenText token) {
+    addChildNode(index, token);
+  }
+
+  public void setParent(ChapterText parent) {
+    setParentNode(parent);
+  }
+
+  public ChapterText getParent() {
+    return (ChapterText) getParentNode();
+  }
+
+  public void setNext(SentenceText next) {
+    setNextNode(next);
+  }
+
+  public void setPrevious(SentenceText previous) {
+    setPreviousNode(previous);
+  }
+
+  public SentenceText getNext() {
+    return (SentenceText) getNextNode();
+  }
+
+  public SentenceText getPrevious() {
+    return (SentenceText) getPreviousNode();
+  }
+
+  @Override
+  public Property getNextProperty() {
+    return Link.NEXT_SENTENCE;
+  }
+
+  @Override
+  public Property getPreviousProperty() {
+    return Link.PREVIOUS_SENTENCE;
+  }
+
+  @Override
+  public String getKey() {
+    return "sentence";
+  }
+
+  @Override
+  public String getChildKey() {
+    return "token";
+  }
+
+  public final String getTokensAsString() {
+    return getTokens().stream()
+                      .map(TokenText::getTokenString)
                       .collect(Collectors.joining(" "));
   }
 
