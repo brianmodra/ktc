@@ -11,7 +11,6 @@ dart/.dart_tool/
 .vscode/
 project/project/
 project/target/
-target/
 
 ._*
 *~
@@ -36,3 +35,18 @@ ktc-web/.vscode/
 ktc-web/results/
 ktc-web/phpunit*.xml
 ktc-web/.phpunit.*.cache
+
+target/classes
+target/generated-test-sources
+target/*.jar
+target/maven-status
+target/surefire-reports
+target/generated-sources
+target/jacoco.exec
+target/maven-archiver
+target/site/jacoco/*.text
+target/site/jacoco/*.ui
+target/site/jacoco/*.html
+target/site/jacoco/jacovo*
+!target/site/jacoco/.gitignore
+target/test-classes

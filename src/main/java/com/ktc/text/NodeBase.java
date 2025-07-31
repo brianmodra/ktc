@@ -112,11 +112,11 @@ public abstract class NodeBase<T extends NodeBase<T>> {
   }
 
   public Link getLinkByKey(Property property, String key) {
-    return links.getByKey(property, key);
+    return links.getLink(property, key);
   }
 
   public List<Link> getLinks(Property property) {
-    return links.get(property);
+    return links.getLinks(property);
   }
 
   public final void setParentNode(NodeBase parent) {
@@ -233,7 +233,7 @@ public abstract class NodeBase<T extends NodeBase<T>> {
     if (childKey == null || childProperty == null) {
       throw new IllegalArgumentException("Child key or property cannot be null");
     }
-    List<Link> childLinks = links.getAllWithKey(childProperty, childKey);
+    List<Link> childLinks = links.getLinks(childProperty, childKey);
     for (Link childLink : childLinks) {
       if (childLink.getTarget() == child) {
         links.remove(childLink);

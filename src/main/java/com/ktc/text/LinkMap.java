@@ -19,7 +19,7 @@ public class LinkMap {
     map.computeIfAbsent(link.getProperty(), k -> new CopyOnWriteArrayList<>()).add(link);
   }
 
-  public List<Link> get(Property property) {
+  public List<Link> getLinks(Property property) {
     final List<Link> list = map.get(property);
     if (list == null) {
       return new ArrayList<>();
@@ -27,7 +27,7 @@ public class LinkMap {
     return list;
   }
 
-  public Link getByKey(Property property, String key) {
+  public Link getLink(Property property, String key) {
     final List<Link> list = map.get(property);
     if (list == null) {
       return null;
@@ -41,10 +41,10 @@ public class LinkMap {
   }
 
   public boolean contains(Property property, String key) {
-    return getByKey(property, key) != null;
+    return getLink(property, key) != null;
   }
 
-  public List<Link> getAllWithKey(Property property, String key) {
+  public List<Link> getLinks(Property property, String key) {
     final List<Link> list = map.get(property);
     if (list == null) {
       return new ArrayList<>();
@@ -52,11 +52,11 @@ public class LinkMap {
     return list.stream().filter(link -> link.getKey().equals(key)).collect(Collectors.toList());
   }
 
-  public void removeAllWithProperty(Property property) {
+  public void remove(Property property) {
     map.remove(property);
   }
 
-  public void removeAllWithKey(Property property, String key) {
+  public void remove(Property property, String key) {
     List<Link> list = map.get(property);
     if (list == null) {
       return;

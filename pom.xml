@@ -24,6 +24,7 @@
         <jena.version>4.5.0</jena.version>
         <javafx.version>21.0.1</javafx.version>
         <richtextfx.version>0.11.2</richtextfx.version>
+        <jacoco.version>0.8.13</jacoco.version>
     </properties>
 
     <dependencies>
@@ -128,6 +129,27 @@
 
     <build>
         <plugins>
+            <!-- JaCoCo -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+    
             <!-- Maven Compiler Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -145,7 +167,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.1.2</version>
                 <configuration>
-                    <argLine>-Xmx3g -ea -Dlogback.configurationFile=logback.xml -Dedu.stanford.nlp.pipeline.useSingletonByDefault=true</argLine>
+                    <argLine>@{argLine} -Xmx3g -ea -Dlogback.configurationFile=logback.xml -Dedu.stanford.nlp.pipeline.useSingletonByDefault=true</argLine>
                 </configuration>
             </plugin>
 
