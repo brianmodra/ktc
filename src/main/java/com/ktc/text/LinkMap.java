@@ -52,21 +52,21 @@ public class LinkMap {
     return list.stream().filter(link -> link.getKey().equals(key)).collect(Collectors.toList());
   }
 
-  public void remove(Property property) {
-    map.remove(property);
+  public boolean remove(Property property) {
+    return map.remove(property) != null;
   }
 
-  public void remove(Property property, String key) {
+  public boolean remove(Property property, String key) {
     List<Link> list = map.get(property);
     if (list == null) {
-      return;
+      return false;
     }
-    list.removeIf(link -> link.getKey().equals(key));
+    return list.removeIf(link -> link.getKey().equals(key));
   }
 
-  public void remove(Link link) {
+  public boolean remove(Link link) {
     Property property = link.getProperty();
-    map.get(property).remove(link);
+    return map.get(property).remove(link);
   }
 
 }

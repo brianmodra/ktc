@@ -1,6 +1,5 @@
 package com.ktc.text;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -13,7 +12,7 @@ import org.apache.jena.vocabulary.RDFS;
 /**
  * Base class for all text elements that need UUID management
  */
-public abstract class NodeBase<T extends NodeBase<T>> {
+public abstract class NodeBase {
   // Using RDFS for labels
   public static final Property LABEL = RDFS.label;  // Use standard rdfs:label for text content
   
@@ -111,7 +110,7 @@ public abstract class NodeBase<T extends NodeBase<T>> {
     this.links.add(link);
   }
 
-  public Link getLinkByKey(Property property, String key) {
+  public Link getLink(Property property, String key) {
     return links.getLink(property, key);
   }
 
@@ -119,65 +118,146 @@ public abstract class NodeBase<T extends NodeBase<T>> {
     return links.getLinks(property);
   }
 
-  public final void setParentNode(NodeBase parent) {
-    if (parent == null) {
-      throw new IllegalArgumentException("Parent cannot be null");
-    }
+  protected void setParentNode(NodeBase parent) {
     Property parentProperty = getParentProperty();
-    if (links.contains(parentProperty, getParentKey())) {
+    String parentKey = getParentKey();
+    if (parent == null) {
+      links.remove(parentProperty, parentKey);
+      return;
+    }
+    if (links.contains(parentProperty, parentKey)) {
+      NodeBase p = getParentNode();
+      if (p == parent) {
+        return;
+      }
       throw new IllegalArgumentException("Parent already set");
     }
-    Link link = new Link(parentProperty, this, parent, getParentKey());
-    addLink(link);
-    parent.addChildNode(this);
+    createUniqueLink(this, parent, parentProperty, parentKey);
   }
 
-  public final NodeBase getParentNode() {
-    Link link = getLinkByKey(getParentProperty(), getParentKey());
+  public NodeBase getParentNode() {
+    Link link = getLink(getParentProperty(), getParentKey());
+    if (link == null) {
+      return null;
+    }
     return link.getTarget();
   }
 
-  public final void setNextNode(NodeBase next) {
-    if (next == null) {
-      throw new IllegalArgumentException("Next cannot be null");
-    }
+  private static void createUniqueLink(NodeBase node, NodeBase otherNode, Property property, String key) {
+    node.links.remove(property, key);
+    Link link = new Link(property, node, otherNode, key);
+    node.addLink(link);
+  }
+
+  protected void setNextNode(NodeBase next) {
+    String nextKey = getNextKey();
     Property nextProperty = getNextProperty();
-    if (links.contains(nextProperty, getNextKey())) {
-      throw new IllegalArgumentException("Next already set");
+    if (nextKey == null || nextProperty == null) {
+      throw new IllegalArgumentException("This type of node (" + getClass().getSimpleName() + ") cannot have next nodes");
     }
-    Link link = new Link(nextProperty, this, next, getNextKey());
-    addLink(link);
-  }
-
-  public final void setPreviousNode(NodeBase previous) {
-    if (previous == null) {
-      throw new IllegalArgumentException("Previous cannot be null");
-    }
+    String previousKey = getPreviousKey();
     Property previousProperty = getPreviousProperty();
-    if (links.contains(previousProperty, getPreviousKey())) {
-      throw new IllegalArgumentException("Previous already set");
+    if (previousKey == null || previousProperty == null) {
+      throw new IllegalArgumentException("This type of node (" + getClass().getSimpleName() + ") cannot have previous nodes");
     }
-    Link link = new Link(previousProperty, this, previous, getPreviousKey());
-    addLink(link);
+    if (next == null) {
+      links.remove(nextProperty, nextKey);
+      return;
+    }
+    Link existingNext = links.getLink(nextProperty, nextKey);
+    if (existingNext != null) {
+      NodeBase existingTarget = existingNext.getTarget();
+      if (existingTarget == next) {
+        return;
+      }
+      if (next.getNextNode() != null) {
+        throw new IllegalArgumentException("Next must be an unlinked node");
+      }
+      createUniqueLink(next, existingTarget, nextProperty, nextKey);
+      createUniqueLink(existingTarget, next, previousProperty, previousKey);
+    }
+    NodeBase existingPrevious = next.getPreviousNode();
+    if (existingPrevious != null) {
+      if (existingPrevious == this) {
+        return;
+      }
+      throw new IllegalArgumentException("Next must be an unlinked node");
+    }
+    createUniqueLink(this, next, nextProperty, nextKey);
+    createUniqueLink(next, this, previousProperty, previousKey);
   }
 
-  public final NodeBase getNextNode() {
-    Link link = getLinkByKey(getNextProperty(), getNextKey());
+  protected void setPreviousNode(NodeBase previous) {
+    String previousKey = getPreviousKey();
+    Property previousProperty = getPreviousProperty();
+    if (previousKey == null || previousProperty == null) {
+      throw new IllegalArgumentException("This type of node (" + getClass().getSimpleName() + ") cannot have previous nodes");
+    }
+    String nextKey = getNextKey();
+    Property nextProperty = getNextProperty();
+    if (nextKey == null || nextProperty == null) {
+      throw new IllegalArgumentException("This type of node (" + getClass().getSimpleName() + ") cannot have next nodes");
+    }
+    if (previous == null) {
+      links.remove(previousProperty, previousKey);
+      return;
+    }
+    Link existingPrevious = links.getLink(previousProperty, previousKey);
+    if (existingPrevious != null) {
+      NodeBase existingTarget = existingPrevious.getTarget();
+      if (existingTarget == previous) {
+        return;
+      }
+      if (previous.getPreviousNode() != null) {
+        throw new IllegalArgumentException("Previous must be an unlinked node");
+      }
+      createUniqueLink(previous, existingTarget, previousProperty, previousKey);
+      createUniqueLink(existingTarget, previous, nextProperty, nextKey);
+    }
+    NodeBase existingNext = previous.getNextNode();
+    if (existingNext != null) {
+      if (existingNext == this) {
+        return;
+      }
+      throw new IllegalArgumentException("Previous must be an unlinked node");
+    }
+    createUniqueLink(this, previous, previousProperty, previousKey);
+    createUniqueLink(previous, this, nextProperty, nextKey);
+  }
+
+  public NodeBase getNextNode() {
+    String nextKey = getNextKey();
+    Property nextProperty = getNextProperty();
+    if (nextKey == null || nextProperty == null) {
+      return null;
+    }
+    Link link = getLink(nextProperty, nextKey);
+    if (link == null) {
+      return null;
+    }
     return link.getTarget();
   }
 
-  public final NodeBase getPreviousNode() {
-    Link link = getLinkByKey(getPreviousProperty(), getPreviousKey());
+  public NodeBase getPreviousNode() {
+    String previousKey = getPreviousKey();
+    Property previousProperty = getPreviousProperty();
+    if (previousKey == null || previousProperty == null) {
+      return null;
+    }
+    Link link = getLink(previousProperty, previousKey);
+    if (link == null) {
+      return null;
+    }
     return link.getTarget();
   }
 
-  public final NodeBase lastChildNode() {
+  public NodeBase lastChildNode() {
     String childKey = getChildKey();
     Property childProperty = getChildProperty();
     if (childKey == null || childProperty == null) {
       return null;
     }
-    Link link = getLinkByKey(childProperty, childKey);
+    Link link = getLink(childProperty, childKey);
     if (link == null) {
       return null;
     }
@@ -189,13 +269,13 @@ public abstract class NodeBase<T extends NodeBase<T>> {
     return lastNode;
   }
 
-  public final NodeBase firstChildNode() {
+  public NodeBase firstChildNode() {
     String childKey = getChildKey();
     Property childProperty = getChildProperty();
     if (childKey == null || childProperty == null) {
       return null;
     }
-    Link link = getLinkByKey(childProperty, childKey);
+    Link link = getLink(childProperty, childKey);
     if (link == null) {
       return null;
     }
@@ -207,24 +287,7 @@ public abstract class NodeBase<T extends NodeBase<T>> {
     return firstNode;
   }
 
-  public final <T extends NodeBase> List<T> getChildNodes() {
-    Class<T> nodeClass = (Class<T>) getClass();
-    NodeBase firstNode = firstChildNode();
-    if (firstNode == null) {
-      return new ArrayList<>();
-    }
-    List<T> nodes = new ArrayList<>();
-    NodeBase currentNode = firstNode;
-    while (currentNode != null) {
-      if (nodeClass.isInstance(currentNode)) {
-        nodes.add((T) currentNode);
-      }
-      currentNode = currentNode.getNextNode();
-    }
-    return nodes;
-  }
-
-  public final void removeChildNode(NodeBase child) {
+  public void removeChildNode(NodeBase child) {
     if (child == null) {
       throw new IllegalArgumentException("Child cannot be null");
     }
@@ -237,77 +300,119 @@ public abstract class NodeBase<T extends NodeBase<T>> {
     for (Link childLink : childLinks) {
       if (childLink.getTarget() == child) {
         links.remove(childLink);
+        break;
       }
     }
+    NodeBase previousChild = child.getPreviousNode();
+    NodeBase nextChild = child.getNextNode();
+    if (previousChild != null) {
+      if (nextChild != null) {
+        createUniqueLink(previousChild, nextChild, previousChild.getNextProperty(), previousChild.getNextKey());
+        createUniqueLink(nextChild, previousChild, nextChild.getPreviousProperty(), nextChild.getPreviousKey());
+      } else {
+        previousChild.setNextNode(null);
+      }
+    } else if (nextChild != null) {
+      nextChild.setPreviousNode(null);
+    }
+    child.setParentNode(null);
+    child.setNextNode(null);
+    child.setPreviousNode(null);
   }
 
-  public final void addChildNode(NodeBase child) {
+  public void addChildNode(NodeBase child) {
     if (child == null) {
       throw new IllegalArgumentException("Child cannot be null");
     }
     NodeBase lastChild = lastChildNode();
-    addChildNodeAfter(child, lastChild);
+    addChildNodeInOrder(child, lastChild);
   }
 
-  protected void addChildNodeAfter(NodeBase child, NodeBase afterChild) {
+  protected void addChildNodeInOrder(NodeBase child, NodeBase afterChild) {
     if (child == null) {
       throw new IllegalArgumentException("Child cannot be null");
     }
-    child.setParentNode(this);
-    if (afterChild == null) {
-      return;
+    String childKey = getChildKey();
+    Property childProperty = getChildProperty();
+    if (childKey == null || childProperty == null) {
+      throw new IllegalArgumentException("This type of node (" + getClass().getSimpleName() + ") cannot have children");
     }
-    afterChild.setNextNode(child);
-    child.setPreviousNode(afterChild);
+    if (afterChild == null) {
+      NodeBase beforeChild = firstChildNode();
+      if (beforeChild != null) {
+        createUniqueLink(child, beforeChild, child.getNextProperty(), child.getNextKey());
+        createUniqueLink(beforeChild, child, beforeChild.getPreviousProperty(), beforeChild.getPreviousKey());
+      }
+    } else {
+      afterChild.setNextNode(child);
+      child.setPreviousNode(afterChild);
+    }
+    // have to add the parent last, otherwise it may find itself and link itself to itself.
+    child.setParentNode(this);
+    Link link = new Link(childProperty, this, child, childKey);
+    addLink(link);
   }
 
-  public final void addChildNode(int index, NodeBase child) {
+  public void addChildNode(int index, NodeBase child) {
     if (child == null) {
       throw new IllegalArgumentException("Child cannot be null");
     }
     if (index < 0) {
       throw new IllegalArgumentException("Index cannot be negative");
     }
-    NodeBase afterChild = firstChildNode();
-    if (afterChild == null) {
-            NodeBase.this.addChildNode(child);
+    if (index == 0) {
+      addChildNodeInOrder(child, null);
       return;
     }
-    int i = 0;
-    while (i < index) {
+    NodeBase afterChild = firstChildNode();
+    for (int i = 1; i < index; i++) {
       NodeBase nextChild = afterChild.getNextNode();
       if (nextChild == null) {
         break;
       }
       afterChild = nextChild;
-      i++;
     }
-    addChildNodeAfter(child, afterChild);
+    addChildNodeInOrder(child, afterChild);
   }
 
-  public abstract Property getNextProperty();
-  public abstract Property getPreviousProperty();
   public Property getParentProperty() {
     return Link.IS_PART_OF;
   }
+
   public Property getChildProperty() {
     return Link.HAS_PART;
   }
+
   public String getNextKey() {
     return "next";
   }
+
   public String getPreviousKey() {
     return "previous";
   }
-  public String getParentKey() {
-    return "parent";
+
+  public String getKey() {
+    String className = getClass().getSimpleName();
+    if (className.endsWith("Text")) {
+      return className.substring(0, className.length() - 4).toLowerCase();
+    }
+    return className;
   }
-  public abstract String getKey();
+
+  public abstract Property getNextProperty();
+
+  public abstract Property getPreviousProperty();
+
+  public abstract String getParentKey();
+
   public abstract String getChildKey();
 
   /**
    * Get the text representation of this text element
    */
   @Override
-  public abstract String toString();
-} 
+  public String toString() {
+    String className = getClass().getSimpleName();
+    return className + "(" + getId().toString() + ")";
+  }
+}

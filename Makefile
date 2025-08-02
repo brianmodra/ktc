@@ -1,5 +1,15 @@
 all: build
 
+test-java:
+	mvn clean compile test-compile
+	mvn dependency:copy -Dartifact=org.junit.platform:junit-platform-console-standalone:1.10.0 -DoutputDirectory=target
+	mvn dependency:build-classpath -Dmdep.outputFile=/tmp/cp.txt
+	export CLASSPATH=$$(cat /tmp/cp.txt):target/classes:target/test-classes:target/dependency/junit-platform-console-standalone-*.jar && \
+	java -cp $$CLASSPATH -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005 \
+	org.junit.platform.console.ConsoleLauncher \
+	--select-class com.ktc.text.NodeBaseTest
+	rm /tmp/cp.txt
+
 build: docker_build
 
 bash:
@@ -18,4 +28,4 @@ clean:
 	docker container rm ktc
 	docker rmi ktc
 
-.PHONY: all build clean run test bash
+.PHONY: all build clean run test bash test-java

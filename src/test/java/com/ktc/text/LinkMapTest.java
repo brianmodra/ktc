@@ -141,4 +141,24 @@ public class LinkMapTest {
     links = linkMap.getLinks(Link.NEXT_WORD);
     assertEquals(link, links.get(0));
   }
+
+  @Test
+  public void testGettingNonExistentPropertyFromLinkMap() {
+    LinkMap linkMap = new LinkMap();
+    TokenText node1 = TokenText.create("node1");
+    TokenText node2 = TokenText.create("node2");
+    Link link = new Link(Link.NEXT_WORD, node1, node2, "next");
+    linkMap.add(link);
+    assertEquals(null, linkMap.getLink(Link.NEXT_WORD, "wrong_key"));
+    assertEquals(null, linkMap.getLink(Link.NEXT_CHAPTER, "next"));
+    List<Link> links = linkMap.getLinks(Link.NEXT_CHAPTER);
+    assertEquals(0, links.size());
+    links = linkMap.getLinks(Link.NEXT_CHAPTER, "next");
+    assertEquals(0, links.size()); 
+    assertFalse(linkMap.contains(Link.NEXT_WORD, "wrong_key"));
+    assertFalse(linkMap.contains(Link.NEXT_CHAPTER, "next"));
+    assertFalse(linkMap.remove(Link.NEXT_CHAPTER));
+    assertFalse(linkMap.remove(Link.NEXT_CHAPTER, "next"));
+    assertFalse(linkMap.remove(Link.NEXT_WORD, "wrong_key"));
+  }
 }

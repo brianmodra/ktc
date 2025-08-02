@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Property;
 
-public class TokenText extends NodeBase {
+public class TokenText extends StructuredNode<TokenText, SentenceText, TokenText> {
   private static final Map<String, Resource> TOKEN_TYPE_MAP = new HashMap<String, Resource>() {{
     put("\"", QUOTATION_MARK);
     put("!", EXCLAMATION_MARK);
@@ -87,30 +87,6 @@ public class TokenText extends NodeBase {
     return tokenString;
   }
 
-  public void setParent(SentenceText parent) {
-    setParentNode(parent);
-  }
-
-  public SentenceText getParent() {
-    return (SentenceText) getParentNode();
-  }
-
-  public void setNext(TokenText next) {
-    setNextNode(next);
-  }
-
-  public void setPrevious(TokenText previous) {
-    setPreviousNode(previous);
-  }
-
-  public TokenText getNext() {
-    return (TokenText) getNextNode();
-  }
-
-  public TokenText getPrevious() {
-    return (TokenText) getPreviousNode();
-  }
-
   @Override
   public Property getNextProperty() {
     return Link.NEXT_WORD;
@@ -122,14 +98,13 @@ public class TokenText extends NodeBase {
   }
 
   @Override
-  public String getKey() {
-    return "token";
+  public String getParentKey() {
+    return "sentence";
   }
-
   @Override
   public String getChildKey() {
     return null;
-  }
+  }    
 
   @Override
   public String toString() {
