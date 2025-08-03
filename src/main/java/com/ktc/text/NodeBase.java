@@ -25,6 +25,12 @@ public abstract class NodeBase {
   public static final Resource WORD_TYPE = ResourceFactory.createResource("http://persistence.uni-leipzig.org/nlp2rdf/ontologies/nif-core#Word");
   public static final Resource TOKEN_TYPE = ResourceFactory.createResource("http://persistence.uni-leipzig.org/nlp2rdf/ontologies/nif-core#Token");
 
+  // Standard RDF vovabulary for SPO triples
+  public static final Resource SUBJECT_TYPE = ResourceFactory.createResource("http://www.w3.org/1999/02/22-rdf-syntax-ns#subject");
+  public static final Resource PREDICATE_TYPE = ResourceFactory.createResource("http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate");
+  public static final Resource OBJECT_TYPE = ResourceFactory.createResource("http://www.w3.org/1999/02/22-rdf-syntax-ns#object");
+  public static final Resource STATEMENT_TYPE = ResourceFactory.createResource("http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement");
+
   // Document type URIs using OLiA namespace
   public static final Resource PUNCTUATION_TYPE = ResourceFactory.createResource("http://purl.org/olia/olia.owl#Punctuation");
   public static final Resource QUOTATION_MARK = ResourceFactory.createResource("http://purl.org/olia/olia.owl#QuotationMark");
@@ -61,6 +67,9 @@ public abstract class NodeBase {
   protected final Resource type;
   protected final UUID id;
   protected LinkMap links;
+  private String parentKey = null;
+  private String childKey = null;
+  private final String thisKey;
 
   /**
    * Constructor that generates a random UUID
@@ -69,6 +78,7 @@ public abstract class NodeBase {
     this.type = type;
     this.id = UUID.randomUUID();
     this.links = new LinkMap();
+    this.thisKey = getThisKey();
   }
 
   /**
@@ -78,6 +88,7 @@ public abstract class NodeBase {
     this.type = type;
     this.id = id;
     this.links = new LinkMap();
+    this.thisKey = getThisKey();
   }
 
   /**
@@ -110,6 +121,26 @@ public abstract class NodeBase {
     this.links.add(link);
   }
 
+  public NodeBase getLinkedTargetNode(Property property, String key) {
+    Link link = getLink(property, key);
+    if (link == null) {
+      return null;
+    }
+    return link.getTarget();
+  }
+
+  public boolean removeLink(Link link) {
+    return links.remove(link);
+  }
+
+  public boolean removeLink(Property property, String key) {
+    return links.remove(property, key);
+  }
+
+  public boolean removeLink(Property property, String key, NodeBase targetNode) {
+    return links.removeLink(property, key, targetNode);
+  }
+
   public Link getLink(Property property, String key) {
     return links.getLink(property, key);
   }
@@ -118,12 +149,41 @@ public abstract class NodeBase {
     return links.getLinks(property);
   }
 
+  public void createUniqueLink(NodeBase targetNode, Property property, String key) {
+    removeLink(property, key);
+    Link link = new Link(property, this, targetNode, key);
+    addLink(link);
+  }
+
+  public void createUniqueTwoWayLink(NodeBase targetNode, Property toProperty, String toKey, Property fromProperty, String fromKey) {
+    createUniqueLink(targetNode, toProperty, toKey);
+    targetNode.createUniqueLink(this, fromProperty, fromKey);
+  }
+
+  public void createLink(NodeBase targetNode, Property property, String key) {
+    Link link = new Link(property, this, targetNode, key);
+    addLink(link);
+  }
+
+  public void createTwoWayLink(NodeBase targetNode, Property toProperty, String toKey, Property fromProperty, String fromKey) {
+    createLink(targetNode, toProperty, toKey);
+    targetNode.createLink(this, fromProperty, fromKey);
+  }
+
   protected void setParentNode(NodeBase parent) {
+    if (parent != null && parentKey == null) {
+      parentKey = parent.getKey();
+    }
     Property parentProperty = getParentProperty();
-    String parentKey = getParentKey();
     if (parent == null) {
-      links.remove(parentProperty, parentKey);
+      removeLink(parentProperty, parentKey);
       return;
+    }
+    if (parentKey == null || parentProperty == null) {
+      return;
+    }
+    if (!parentCanBe(parent.getClass())) {
+      throw new IllegalArgumentException("Parent of (" + getClass().getSimpleName() + ") cannot be (" + parent.getClass().getSimpleName() + ")");
     }
     if (links.contains(parentProperty, parentKey)) {
       NodeBase p = getParentNode();
@@ -132,21 +192,15 @@ public abstract class NodeBase {
       }
       throw new IllegalArgumentException("Parent already set");
     }
-    createUniqueLink(this, parent, parentProperty, parentKey);
+    createUniqueLink(parent, parentProperty, parentKey);
   }
 
   public NodeBase getParentNode() {
-    Link link = getLink(getParentProperty(), getParentKey());
-    if (link == null) {
+    Property parentProperty = getParentProperty();
+    if (parentKey == null || parentProperty == null) {
       return null;
     }
-    return link.getTarget();
-  }
-
-  private static void createUniqueLink(NodeBase node, NodeBase otherNode, Property property, String key) {
-    node.links.remove(property, key);
-    Link link = new Link(property, node, otherNode, key);
-    node.addLink(link);
+    return getLinkedTargetNode(parentProperty, parentKey);
   }
 
   protected void setNextNode(NodeBase next) {
@@ -161,20 +215,18 @@ public abstract class NodeBase {
       throw new IllegalArgumentException("This type of node (" + getClass().getSimpleName() + ") cannot have previous nodes");
     }
     if (next == null) {
-      links.remove(nextProperty, nextKey);
+      removeLink(nextProperty, nextKey);
       return;
     }
-    Link existingNext = links.getLink(nextProperty, nextKey);
-    if (existingNext != null) {
-      NodeBase existingTarget = existingNext.getTarget();
+    NodeBase existingTarget = getLinkedTargetNode(nextProperty, nextKey);
+    if (existingTarget != null) {
       if (existingTarget == next) {
         return;
       }
       if (next.getNextNode() != null) {
         throw new IllegalArgumentException("Next must be an unlinked node");
       }
-      createUniqueLink(next, existingTarget, nextProperty, nextKey);
-      createUniqueLink(existingTarget, next, previousProperty, previousKey);
+      next.createUniqueTwoWayLink(existingTarget, nextProperty, nextKey, previousProperty, previousKey);
     }
     NodeBase existingPrevious = next.getPreviousNode();
     if (existingPrevious != null) {
@@ -183,8 +235,7 @@ public abstract class NodeBase {
       }
       throw new IllegalArgumentException("Next must be an unlinked node");
     }
-    createUniqueLink(this, next, nextProperty, nextKey);
-    createUniqueLink(next, this, previousProperty, previousKey);
+    createUniqueTwoWayLink(next, nextProperty, nextKey, previousProperty, previousKey);
   }
 
   protected void setPreviousNode(NodeBase previous) {
@@ -199,20 +250,18 @@ public abstract class NodeBase {
       throw new IllegalArgumentException("This type of node (" + getClass().getSimpleName() + ") cannot have next nodes");
     }
     if (previous == null) {
-      links.remove(previousProperty, previousKey);
+      removeLink(previousProperty, previousKey);
       return;
     }
-    Link existingPrevious = links.getLink(previousProperty, previousKey);
-    if (existingPrevious != null) {
-      NodeBase existingTarget = existingPrevious.getTarget();
+    NodeBase existingTarget = getLinkedTargetNode(previousProperty, previousKey);
+    if (existingTarget != null) {
       if (existingTarget == previous) {
         return;
       }
       if (previous.getPreviousNode() != null) {
         throw new IllegalArgumentException("Previous must be an unlinked node");
       }
-      createUniqueLink(previous, existingTarget, previousProperty, previousKey);
-      createUniqueLink(existingTarget, previous, nextProperty, nextKey);
+      previous.createUniqueTwoWayLink(existingTarget, previousProperty, previousKey, nextProperty, nextKey);
     }
     NodeBase existingNext = previous.getNextNode();
     if (existingNext != null) {
@@ -221,8 +270,7 @@ public abstract class NodeBase {
       }
       throw new IllegalArgumentException("Previous must be an unlinked node");
     }
-    createUniqueLink(this, previous, previousProperty, previousKey);
-    createUniqueLink(previous, this, nextProperty, nextKey);
+    createUniqueTwoWayLink(previous, previousProperty, previousKey, nextProperty, nextKey);
   }
 
   public NodeBase getNextNode() {
@@ -231,11 +279,7 @@ public abstract class NodeBase {
     if (nextKey == null || nextProperty == null) {
       return null;
     }
-    Link link = getLink(nextProperty, nextKey);
-    if (link == null) {
-      return null;
-    }
-    return link.getTarget();
+    return getLinkedTargetNode(nextProperty, nextKey);
   }
 
   public NodeBase getPreviousNode() {
@@ -244,24 +288,18 @@ public abstract class NodeBase {
     if (previousKey == null || previousProperty == null) {
       return null;
     }
-    Link link = getLink(previousProperty, previousKey);
-    if (link == null) {
-      return null;
-    }
-    return link.getTarget();
+    return getLinkedTargetNode(previousProperty, previousKey);
   }
 
   public NodeBase lastChildNode() {
-    String childKey = getChildKey();
     Property childProperty = getChildProperty();
     if (childKey == null || childProperty == null) {
       return null;
     }
-    Link link = getLink(childProperty, childKey);
-    if (link == null) {
+    NodeBase lastNode = getLinkedTargetNode(childProperty, childKey);
+    if (lastNode == null) {
       return null;
     }
-    NodeBase lastNode = link.getTarget();
     NodeBase nextNode;
     while ((nextNode = lastNode.getNextNode()) != null) {
       lastNode = nextNode;
@@ -270,16 +308,14 @@ public abstract class NodeBase {
   }
 
   public NodeBase firstChildNode() {
-    String childKey = getChildKey();
     Property childProperty = getChildProperty();
     if (childKey == null || childProperty == null) {
       return null;
     }
-    Link link = getLink(childProperty, childKey);
-    if (link == null) {
+    NodeBase firstNode = getLinkedTargetNode(childProperty, childKey);
+    if (firstNode == null) {
       return null;
     }
-    NodeBase firstNode = link.getTarget();
     NodeBase previousNode;
     while ((previousNode = firstNode.getPreviousNode()) != null) {
       firstNode = previousNode;
@@ -291,48 +327,59 @@ public abstract class NodeBase {
     if (child == null) {
       throw new IllegalArgumentException("Child cannot be null");
     }
-    String childKey = child.getKey();
+    if (childKey == null) {
+      childKey = child.getKey();
+    }
     Property childProperty = getChildProperty();
     if (childKey == null || childProperty == null) {
       throw new IllegalArgumentException("Child key or property cannot be null");
     }
-    List<Link> childLinks = links.getLinks(childProperty, childKey);
-    for (Link childLink : childLinks) {
-      if (childLink.getTarget() == child) {
-        links.remove(childLink);
-        break;
-      }
-    }
+    removeLink(childProperty, childKey, child);
     NodeBase previousChild = child.getPreviousNode();
     NodeBase nextChild = child.getNextNode();
     if (previousChild != null) {
       if (nextChild != null) {
-        createUniqueLink(previousChild, nextChild, previousChild.getNextProperty(), previousChild.getNextKey());
-        createUniqueLink(nextChild, previousChild, nextChild.getPreviousProperty(), nextChild.getPreviousKey());
+        previousChild.createUniqueTwoWayLink(nextChild, previousChild.getNextProperty(), previousChild.getNextKey(), nextChild.getPreviousProperty(), nextChild.getPreviousKey());
       } else {
         previousChild.setNextNode(null);
       }
     } else if (nextChild != null) {
       nextChild.setPreviousNode(null);
     }
-    child.setParentNode(null);
-    child.setNextNode(null);
-    child.setPreviousNode(null);
+    if (!parentCanBe(child.getClass())) {
+      child.setParentNode(null);
+    }
+    if (child.getNextNode() != null) {
+      child.setNextNode(null);
+    }
+    if (child.getPreviousNode() != null) {
+      child.setPreviousNode(null);
+    }
   }
 
   public void addChildNode(NodeBase child) {
     if (child == null) {
       throw new IllegalArgumentException("Child cannot be null");
     }
-    NodeBase lastChild = lastChildNode();
-    addChildNodeInOrder(child, lastChild);
+    Property childProperty = getChildProperty();
+    if (childProperty == null) {
+      throw new IllegalArgumentException("This type of node (" + getClass().getSimpleName() + ") cannot have children");
+    }
+    if (child.parentCanBe(getClass())) {
+      NodeBase lastChild = lastChildNode();
+      addChildNodeInOrder(child, lastChild);
+      return;  
+    }
+    createLink(child, childProperty, childKey);
   }
 
   protected void addChildNodeInOrder(NodeBase child, NodeBase afterChild) {
     if (child == null) {
       throw new IllegalArgumentException("Child cannot be null");
     }
-    String childKey = getChildKey();
+    if (childKey == null) {
+      childKey = child.getKey();
+    }
     Property childProperty = getChildProperty();
     if (childKey == null || childProperty == null) {
       throw new IllegalArgumentException("This type of node (" + getClass().getSimpleName() + ") cannot have children");
@@ -340,8 +387,7 @@ public abstract class NodeBase {
     if (afterChild == null) {
       NodeBase beforeChild = firstChildNode();
       if (beforeChild != null) {
-        createUniqueLink(child, beforeChild, child.getNextProperty(), child.getNextKey());
-        createUniqueLink(beforeChild, child, beforeChild.getPreviousProperty(), beforeChild.getPreviousKey());
+        child.createUniqueTwoWayLink(beforeChild, child.getNextProperty(), child.getNextKey(), beforeChild.getPreviousProperty(), beforeChild.getPreviousKey());
       }
     } else {
       afterChild.setNextNode(child);
@@ -349,13 +395,15 @@ public abstract class NodeBase {
     }
     // have to add the parent last, otherwise it may find itself and link itself to itself.
     child.setParentNode(this);
-    Link link = new Link(childProperty, this, child, childKey);
-    addLink(link);
+    createLink(child, childProperty, childKey);
   }
 
   public void addChildNode(int index, NodeBase child) {
     if (child == null) {
       throw new IllegalArgumentException("Child cannot be null");
+    }
+    if (childKey == null) {
+      childKey = child.getKey();
     }
     if (index < 0) {
       throw new IllegalArgumentException("Index cannot be negative");
@@ -392,20 +440,22 @@ public abstract class NodeBase {
   }
 
   public String getKey() {
-    String className = getClass().getSimpleName();
-    if (className.endsWith("Text")) {
-      return className.substring(0, className.length() - 4).toLowerCase();
-    }
-    return className;
+    return thisKey;
   }
 
   public abstract Property getNextProperty();
 
   public abstract Property getPreviousProperty();
 
-  public abstract String getParentKey();
+  public abstract boolean parentCanBe(Class<? extends NodeBase> parentClass);
 
-  public abstract String getChildKey();
+  private String getThisKey() {
+    String className = getClass().getSimpleName();
+    if (className.endsWith("Text")) {
+      return className.substring(0, className.length() - 4).toLowerCase();
+    }
+    return className;
+  }
 
   /**
    * Get the text representation of this text element

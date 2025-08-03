@@ -25,13 +25,8 @@ public class SentenceText extends StructuredNode<SentenceText, ParagraphText, To
   }
 
   @Override
-  public String getParentKey() {
-    return "paragraph";
-  }
-
-  @Override
-  public String getChildKey() {
-    return "token";
+  public boolean parentCanBe(Class<? extends NodeBase> parentClass) {
+    return parentClass == ParagraphText.class;
   }
 
   public final String getTokensAsString() {

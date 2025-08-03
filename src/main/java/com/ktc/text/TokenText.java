@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.List;
+
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Property;
 
@@ -29,6 +31,7 @@ public class TokenText extends StructuredNode<TokenText, SentenceText, TokenText
     put("{", LEFT_BRACE);
     put("}", RIGHT_BRACE);
   }};
+
   private static final Pattern PUNCTUATION_PATTERN = Pattern.compile(
     TOKEN_TYPE_MAP.keySet().stream()
         .map(Pattern::quote)
@@ -98,13 +101,14 @@ public class TokenText extends StructuredNode<TokenText, SentenceText, TokenText
   }
 
   @Override
-  public String getParentKey() {
-    return "sentence";
+  public boolean parentCanBe(Class<? extends NodeBase> parentClass) {
+    return parentClass == SentenceText.class;
   }
+
   @Override
-  public String getChildKey() {
+  public Property getChildProperty() {
     return null;
-  }    
+  }
 
   @Override
   public String toString() {

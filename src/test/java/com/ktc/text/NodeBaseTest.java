@@ -21,13 +21,10 @@ public class NodeBaseTest {
       public Property getPreviousProperty() {
         return Link.PREVIOUS_WORD;
       }
+
       @Override
-      public String getParentKey() {
-        return "TestParentNode";
-      }
-      @Override
-      public String getChildKey() {
-        return null;
+      public boolean parentCanBe(Class<? extends NodeBase> parentClass) {
+        return true;
       }
     }
     class TestParentNode extends NodeBase {
@@ -43,13 +40,10 @@ public class NodeBaseTest {
       public Property getPreviousProperty() {
         return Link.PREVIOUS_SENTENCE;
       }
+
       @Override
-      public String getParentKey() {
-        return "paragraph";
-      }
-      @Override
-      public String getChildKey() {
-        return "TestChildNode";
+      public boolean parentCanBe(Class<? extends NodeBase> parentClass) {
+        return false;
       }
     }
     TestParentNode node1 = new TestParentNode(NodeBase.SENTENCE_TYPE);

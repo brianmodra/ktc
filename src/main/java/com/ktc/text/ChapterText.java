@@ -26,13 +26,8 @@ public class ChapterText extends StructuredNode<ChapterText, DocumentText, Parag
   }
 
   @Override
-  public String getChildKey() {
-    return "paragraph";
-  }
-
-  @Override
-  public String getParentKey() {
-    return "document";
+  public boolean parentCanBe(Class<? extends NodeBase> parentClass) {
+    return parentClass == DocumentText.class;
   }
 
   public String getParagraphsAsString() {
