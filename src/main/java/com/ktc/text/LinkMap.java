@@ -64,13 +64,16 @@ public class LinkMap {
     return list.removeIf(link -> link.getKey().equals(key));
   }
 
-  public boolean removeLink(Property property, String key, NodeBase targetNode) {
+  public boolean remove(Property property, String key, NodeBase targetNode) {
+    boolean foundSome = false;
     for (Link link : getLinks(property, key)) {
       if (link.getTarget() == targetNode) {
-        return remove(link);
+        if (LinkMap.this.remove(link)) {
+          foundSome = true;
+        }
       }
     }
-    return false;
+    return foundSome;
   }
 
   public boolean remove(Link link) {

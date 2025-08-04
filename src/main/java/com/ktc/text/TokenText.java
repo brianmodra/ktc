@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.List;
 
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Property;

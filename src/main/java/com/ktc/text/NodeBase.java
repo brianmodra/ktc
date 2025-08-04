@@ -1,5 +1,6 @@
 package com.ktc.text;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -121,12 +122,19 @@ public abstract class NodeBase {
     this.links.add(link);
   }
 
-  public NodeBase getLinkedTargetNode(Property property, String key) {
-    Link link = getLink(property, key);
-    if (link == null) {
+  public NodeBase getLinkedTargetNode(Property property, String key, boolean mustBeLinkable) {
+    if (key == null || property == null) {
       return null;
     }
-    return link.getTarget();
+    List<Link> childLinks = this.links.getLinks(property, key);
+    for (Link link : childLinks) {
+      NodeBase target = link.getTarget();
+      if (mustBeLinkable && target.getNextProperty() == null) {
+        continue;
+      }
+      return target;
+    }
+    return null;
   }
 
   public boolean removeLink(Link link) {
@@ -138,7 +146,7 @@ public abstract class NodeBase {
   }
 
   public boolean removeLink(Property property, String key, NodeBase targetNode) {
-    return links.removeLink(property, key, targetNode);
+    return links.remove(property, key, targetNode);
   }
 
   public Link getLink(Property property, String key) {
@@ -200,7 +208,7 @@ public abstract class NodeBase {
     if (parentKey == null || parentProperty == null) {
       return null;
     }
-    return getLinkedTargetNode(parentProperty, parentKey);
+    return getLinkedTargetNode(parentProperty, parentKey, false);
   }
 
   protected void setNextNode(NodeBase next) {
@@ -218,7 +226,7 @@ public abstract class NodeBase {
       removeLink(nextProperty, nextKey);
       return;
     }
-    NodeBase existingTarget = getLinkedTargetNode(nextProperty, nextKey);
+    NodeBase existingTarget = getLinkedTargetNode(nextProperty, nextKey, true);
     if (existingTarget != null) {
       if (existingTarget == next) {
         return;
@@ -253,7 +261,7 @@ public abstract class NodeBase {
       removeLink(previousProperty, previousKey);
       return;
     }
-    NodeBase existingTarget = getLinkedTargetNode(previousProperty, previousKey);
+    NodeBase existingTarget = getLinkedTargetNode(previousProperty, previousKey, true);
     if (existingTarget != null) {
       if (existingTarget == previous) {
         return;
@@ -279,7 +287,7 @@ public abstract class NodeBase {
     if (nextKey == null || nextProperty == null) {
       return null;
     }
-    return getLinkedTargetNode(nextProperty, nextKey);
+    return getLinkedTargetNode(nextProperty, nextKey, true);
   }
 
   public NodeBase getPreviousNode() {
@@ -288,7 +296,7 @@ public abstract class NodeBase {
     if (previousKey == null || previousProperty == null) {
       return null;
     }
-    return getLinkedTargetNode(previousProperty, previousKey);
+    return getLinkedTargetNode(previousProperty, previousKey, true);
   }
 
   public NodeBase lastChildNode() {
@@ -296,7 +304,7 @@ public abstract class NodeBase {
     if (childKey == null || childProperty == null) {
       return null;
     }
-    NodeBase lastNode = getLinkedTargetNode(childProperty, childKey);
+    NodeBase lastNode = getLinkedTargetNode(childProperty, childKey, true);
     if (lastNode == null) {
       return null;
     }
@@ -307,12 +315,25 @@ public abstract class NodeBase {
     return lastNode;
   }
 
+  public List<NodeBase> allChildNodes() {
+    Property childProperty = getChildProperty();
+    if (childProperty == null) {
+      return new ArrayList<>();
+    }
+    List<Link> childLinks = this.links.getLinks(childProperty);
+    List<NodeBase> children = new ArrayList<>();
+    for (Link link : childLinks) {
+      children.add(link.getTarget());
+    }
+    return children;
+  }
+
   public NodeBase firstChildNode() {
     Property childProperty = getChildProperty();
     if (childKey == null || childProperty == null) {
       return null;
     }
-    NodeBase firstNode = getLinkedTargetNode(childProperty, childKey);
+    NodeBase firstNode = getLinkedTargetNode(childProperty, childKey, true);
     if (firstNode == null) {
       return null;
     }
@@ -370,7 +391,7 @@ public abstract class NodeBase {
       addChildNodeInOrder(child, lastChild);
       return;  
     }
-    createLink(child, childProperty, childKey);
+    createLink(child, childProperty, child.getKey());
   }
 
   protected void addChildNodeInOrder(NodeBase child, NodeBase afterChild) {

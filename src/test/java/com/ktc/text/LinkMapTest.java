@@ -128,18 +128,49 @@ public class LinkMapTest {
     assertEquals(2, links.size());
     assertEquals(link, links.get(0));
     assertEquals(link2, links.get(1));
-    linkMap.remove(Link.NEXT_PARAGRAPH);
+    assertFalse(linkMap.remove(Link.NEXT_PARAGRAPH));
     assertEquals(2, linkMap.getLinks(Link.NEXT_WORD).size());
-    linkMap.remove(Link.NEXT_WORD, "next2");
+    assertFalse(linkMap.remove(Link.NEXT_WORD, "next2"));
     assertEquals(2, linkMap.getLinks(Link.NEXT_WORD).size());
     assertTrue(linkMap.contains(Link.NEXT_WORD, "next"));
     assertFalse(linkMap.contains(Link.NEXT_WORD, "next2"));
     assertEquals(1, linkMap.getLinks(Link.NEXT_CHAPTER).size());
 
-    linkMap.remove(link2);
+    assertTrue(linkMap.remove(link2));
     assertEquals(1, linkMap.getLinks(Link.NEXT_WORD).size());
     links = linkMap.getLinks(Link.NEXT_WORD);
     assertEquals(link, links.get(0));
+
+    Link link4 = new Link(Link.NEXT_WORD, node2, node1, "next");
+    Link link5 = new Link(Link.NEXT_WORD, node1, node2, "next");
+    TokenText node3 = TokenText.create("node3");
+    Link link6 = new Link(Link.NEXT_WORD, node2, node3, "next");
+    linkMap.add(link4);
+    linkMap.add(link5);
+    linkMap.add(link6);
+
+    links = linkMap.getLinks(Link.NEXT_WORD);
+    assertEquals(4, links.size());
+    assertEquals(link, links.get(0));
+    assertEquals(link4, links.get(1));
+    assertEquals(link5, links.get(2));
+    assertEquals(link6, links.get(3));
+
+    assertTrue(linkMap.remove(Link.NEXT_WORD, "next", node3));
+    links = linkMap.getLinks(Link.NEXT_WORD);
+    assertEquals(3, links.size());
+    assertEquals(link, links.get(0));
+    assertEquals(link4, links.get(1));
+    assertEquals(link5, links.get(2));
+
+    assertTrue(linkMap.remove(Link.NEXT_WORD, "next", node2));
+    links = linkMap.getLinks(Link.NEXT_WORD);
+    assertEquals(1, links.size());
+    assertEquals(link4, links.get(0));
+
+    assertTrue(linkMap.remove(Link.NEXT_WORD, "next", node1));
+    links = linkMap.getLinks(Link.NEXT_WORD); 
+    assertEquals(0, links.size());
   }
 
   @Test
