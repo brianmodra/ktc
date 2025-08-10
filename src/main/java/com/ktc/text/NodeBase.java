@@ -3,12 +3,14 @@ package com.ktc.text;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
+import org.w3c.dom.Node;
 
 /**
  * Base class for all text elements that need UUID management
@@ -26,11 +28,14 @@ public abstract class NodeBase {
   public static final Resource WORD_TYPE = ResourceFactory.createResource("http://persistence.uni-leipzig.org/nlp2rdf/ontologies/nif-core#Word");
   public static final Resource TOKEN_TYPE = ResourceFactory.createResource("http://persistence.uni-leipzig.org/nlp2rdf/ontologies/nif-core#Token");
 
-  // Standard RDF vovabulary for SPO triples
+  // Standard RDF vocabulary for SPO triples
   public static final Resource SUBJECT_TYPE = ResourceFactory.createResource("http://www.w3.org/1999/02/22-rdf-syntax-ns#subject");
   public static final Resource PREDICATE_TYPE = ResourceFactory.createResource("http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate");
   public static final Resource OBJECT_TYPE = ResourceFactory.createResource("http://www.w3.org/1999/02/22-rdf-syntax-ns#object");
   public static final Resource STATEMENT_TYPE = ResourceFactory.createResource("http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement");
+
+  // Standard RDF for sem
+  public static final Resource ACTOR_TYPE = ResourceFactory.createResource("http://www.ontologydesignpatterns.org/ont/semantics.owl#Actor");
 
   // Document type URIs using OLiA namespace
   public static final Resource PUNCTUATION_TYPE = ResourceFactory.createResource("http://purl.org/olia/olia.owl#Punctuation");
@@ -68,6 +73,7 @@ public abstract class NodeBase {
   protected final Resource type;
   protected final UUID id;
   protected LinkMap links;
+  protected CopyOnWriteArrayList<NodeAnnotation> annotations = new CopyOnWriteArrayList<NodeAnnotation>();
   private String parentKey = null;
   private String childKey = null;
   private final String thisKey;
@@ -92,9 +98,6 @@ public abstract class NodeBase {
     this.thisKey = getThisKey();
   }
 
-  /**
-   * Get the UUID for this text element
-   */
   public UUID getId() {
     return id;
   }
@@ -115,14 +118,43 @@ public abstract class NodeBase {
     return type.getURI();
   }
 
-  /**
-   * Set the UUID of the parent text element
-   */
   public void addLink(Link link) {
     this.links.add(link);
   }
 
-  public NodeBase getLinkedTargetNode(Property property, String key, boolean mustBeLinkable) {
+  public List<NodeAnnotation> getAnnotations(Property property) {
+    ArrayList<NodeAnnotation> results = new ArrayList<>();
+    for (NodeAnnotation annotation : this.annotations) {
+      if (annotation.getProperty().equals(property)) {
+        results.add(annotation);
+      }
+    }
+    return results;
+  }
+
+  public void addAnnotation(NodeAnnotation annotation) {
+    this.annotations.add(annotation);
+  }
+
+  public boolean removeAnnotation(NodeAnnotation annotation) {
+    return this.annotations.remove(annotation);
+  }
+
+  public boolean removeAnnotations(Property property) {
+    boolean removedSome = false;
+    CopyOnWriteArrayList<NodeAnnotation> results = new CopyOnWriteArrayList<>();
+    for (NodeAnnotation annotation : this.annotations) {
+      if (!annotation.getProperty().equals(property)) {
+        results.add(annotation);
+      } else {
+        removedSome = true;
+      }
+    }
+    this.annotations = results;
+    return removedSome;
+  }
+
+  private NodeBase getLinkedTargetNode(Property property, String key, boolean mustBeLinkable) {
     if (key == null || property == null) {
       return null;
     }
@@ -157,25 +189,31 @@ public abstract class NodeBase {
     return links.getLinks(property);
   }
 
-  public void createUniqueLink(NodeBase targetNode, Property property, String key) {
+  public Link createUniqueLink(NodeBase targetNode, Property property, String key) {
     removeLink(property, key);
     Link link = new Link(property, this, targetNode, key);
     addLink(link);
+    return link;
   }
 
   public void createUniqueTwoWayLink(NodeBase targetNode, Property toProperty, String toKey, Property fromProperty, String fromKey) {
-    createUniqueLink(targetNode, toProperty, toKey);
-    targetNode.createUniqueLink(this, fromProperty, fromKey);
+    Link to = createUniqueLink(targetNode, toProperty, toKey);
+    Link from = targetNode.createUniqueLink(this, fromProperty, fromKey);
+    to.setReverseLink(from);
+    from.setReverseLink(to);
   }
 
-  public void createLink(NodeBase targetNode, Property property, String key) {
+  public Link createLink(NodeBase targetNode, Property property, String key) {
     Link link = new Link(property, this, targetNode, key);
     addLink(link);
+    return link;
   }
 
   public void createTwoWayLink(NodeBase targetNode, Property toProperty, String toKey, Property fromProperty, String fromKey) {
-    createLink(targetNode, toProperty, toKey);
-    targetNode.createLink(this, fromProperty, fromKey);
+    Link to = createLink(targetNode, toProperty, toKey);
+    Link from = targetNode.createLink(this, fromProperty, fromKey);
+    to.setReverseLink(from);
+    from.setReverseLink(to);
   }
 
   protected void setParentNode(NodeBase parent) {

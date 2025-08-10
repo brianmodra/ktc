@@ -20,7 +20,7 @@
         <scala.version>3.7.1</scala.version>
         <pekko.version>1.1.4</pekko.version>
         <netty.version>4.1.109.Final</netty.version>
-        <stanford.nlp.version>4.5.4</stanford.nlp.version>
+        <stanford.nlp.version>4.5.10</stanford.nlp.version>
         <jena.version>4.5.0</jena.version>
         <javafx.version>21.0.1</javafx.version>
         <richtextfx.version>0.11.2</richtextfx.version>
@@ -41,7 +41,7 @@
             <version>${pekko.version}</version>
         </dependency>
 
-        <!-- Stanford CoreNLP
+        <!-- Stanford CoreNLP main dependency -->
         <dependency>
             <groupId>edu.stanford.nlp</groupId>
             <artifactId>stanford-corenlp</artifactId>
@@ -53,12 +53,36 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
+        <!-- core models -->
         <dependency>
             <groupId>edu.stanford.nlp</groupId>
             <artifactId>stanford-corenlp</artifactId>
             <version>${stanford.nlp.version}</version>
             <classifier>models</classifier>
-        </dependency>  -->
+        </dependency>
+
+        <!-- Stanford CoreNLP English Models -->
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>${stanford.nlp.version}</version>
+            <classifier>models-english</classifier>
+        </dependency>
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp-models-current</artifactId>
+            <version>${stanford.nlp.version}</version>
+            <classifier>models-english</classifier>
+        </dependency>
+
+        <!-- Stanford CoreNLP English KBP Models -->
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>${stanford.nlp.version}</version>
+            <classifier>models-english-kbp</classifier>
+        </dependency>
 
         <!-- Apache Jena -->
         <dependency>
@@ -148,13 +172,6 @@
             <artifactId>richtextfx</artifactId>
             <version>${richtextfx.version}</version>
         </dependency>
-
-        <!-- Guava 
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>33.4.8-jre</version>
-        </dependency> -->
     </dependencies>
 
     <build>
@@ -207,12 +224,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>${exec-maven-plugin.version}</version>
                 <configuration>
-                    <mainClass>com.ktc.App</mainClass>
-                    <options>
-                        <option>-ea</option>
-                        <option>-Dlogback.configurationFile=logback.xml</option>
-                        <option>-Dedu.stanford.nlp.pipeline.useSingletonByDefault=true</option>
-                    </options>
+                    <mainClass>com.ktc.ui.ChapterEditor</mainClass>
                 </configuration>
                 <executions>
                     <execution>
@@ -222,12 +234,6 @@
                         </goals>
                         <configuration>
                             <mainClass>com.ktc.ui.ChapterEditor</mainClass>
-                            <options>
-                                <option>--module-path</option>
-                                <option>${javafx.runtime.path}</option>
-                                <option>--add-modules</option>
-                                <option>javafx.controls,javafx.fxml</option>
-                            </options>
                         </configuration>
                     </execution>
                 </executions>
@@ -238,9 +244,23 @@
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>${javafx-maven-plugin.version}</version>
-                <configuration>
-                    <mainClass>com.ktc.ui.ChapterEditor</mainClass>
-                </configuration>
+                <executions>
+                    <execution>
+                        <id>run</id>
+                        <configuration>
+                            <mainClass>com.ktc.ui.ChapterEditor</mainClass>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>debug</id>
+                        <configuration>
+                            <mainClass>com.ktc.ui.ChapterEditor</mainClass>
+                            <options>
+                                <option>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005</option>
+                            </options>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

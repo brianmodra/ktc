@@ -80,7 +80,9 @@ public class TokenText extends StructuredNode<TokenText, SentenceText, TokenText
       return new TokenText(type, tokenString, id);
     }
     if (PUNCTUATION_PATTERN.matcher(tokenString).find()) {
-      throw new IllegalArgumentException("Token string cannot contain punctuation unless it is one character long");
+      if (!tokenString.startsWith("'") || tokenString.endsWith("'")) {
+        throw new IllegalArgumentException("Token string cannot contain punctuation unless it is one character long, or a posessive");
+      }
     }
     return new TokenText(WORD_TYPE, tokenString, id);
   }

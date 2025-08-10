@@ -1,5 +1,7 @@
 package com.ktc.text;
 
+import java.lang.ref.WeakReference;
+
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.ResourceFactory;
 
@@ -19,19 +21,19 @@ public class Link {
   public static final Property PREVIOUS_SENTENCE = ResourceFactory.createProperty("http://persistence.uni-leipzig.org/nlp2rdf/ontologies/nif-core#previousSentence");
   public static final Property PREVIOUS_WORD = ResourceFactory.createProperty("http://persistence.uni-leipzig.org/nlp2rdf/ontologies/nif-core#previousWord");
   public static final Property ANCHOR_OF = ResourceFactory.createProperty("http://persistence.uni-leipzig.org/nlp2rdf/ontologies/nif-core#anchorOf");
-  
-  // KTC-based properties for dramatic structure sequencing
-  public static final Property NEXT_STRING = ResourceFactory.createProperty("http://ktc.com/nextString");
-  public static final Property PREVIOUS_STRING = ResourceFactory.createProperty("http://ktc.com/previousString");
-  
+
+  // SEM-based properties for semantic relationships
+  public static final Property DENOTES = ResourceFactory.createProperty("http://www.ontologydesignpatterns.org/ont/semantics.owl#denotes");
+
   private final Property property;
-  private final NodeBase source;
+  private final WeakReference<NodeBase> source;
   private final NodeBase target;
   private final String key;
+  private WeakReference<Link> reverseLink = null;
 
   public Link(Property property, NodeBase source, NodeBase target, String key) {
-    this.property = property;  
-    this.source = source;
+    this.property = property;
+    this.source = new WeakReference<>(source);
     this.target = target;
     this.key = key;
   }
@@ -57,10 +59,22 @@ public class Link {
   }
 
   public NodeBase getSource() {
-    return source;
+    return source.get();
   }
 
   public NodeBase getTarget() {
     return target;
+  }
+
+  public void setReverseLink(Link reverseLink) {
+    this.reverseLink = new WeakReference<>(reverseLink);
+  }
+
+  public Link getReverseLink() {
+    return reverseLink.get();
+  }
+
+  public void removeReverseLink() {
+    reverseLink.clear();
   }
 }

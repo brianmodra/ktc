@@ -3,11 +3,21 @@ package com.ktc.text;
 import java.util.UUID;
 
 public class TripleSubject extends TripleComponent {
-  public TripleSubject() {
+  private final String subjectGloss;
+
+  public TripleSubject(String subjectGloss) {
     super(NodeBase.RDF_SUBJECT);
+    this.subjectGloss = subjectGloss;
   }
 
-  public TripleSubject(UUID tripleComponentId) {
+  public TripleSubject(String subjectGloss, UUID tripleComponentId) {
     super(NodeBase.RDF_SUBJECT, tripleComponentId);
+    this.subjectGloss = subjectGloss;
   }
+
+  public String getSubjectGloss()
+  {
+    return subjectGloss;
+  }
+
 }

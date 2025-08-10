@@ -3,11 +3,18 @@ package com.ktc.text;
 import java.util.UUID;
 
 public class TriplePredicate extends TripleComponent {
-  public TriplePredicate() {
+  private final String predicateGloss;
+
+  public TriplePredicate(String predicateGloss, UUID tripleComponentId) {
+    super(NodeBase.RDF_PREDICATE, tripleComponentId);
+    this.predicateGloss = predicateGloss;
+  }
+  public TriplePredicate(String predicateGloss) {
     super(NodeBase.RDF_PREDICATE);
+    this.predicateGloss = predicateGloss;
   }
 
-  public TriplePredicate(UUID tripleComponentId) {
-    super(NodeBase.RDF_PREDICATE, tripleComponentId);
+  public String getPredicateGloss() {
+    return predicateGloss;
   }
 }

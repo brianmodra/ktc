@@ -17,6 +17,46 @@ mvn test-compile
 mvn exec:java -Dexec.mainClass="com.ktc.App"
 ```
 
+## Stanford CoreNLP
+I installed the source for the library from https://github.com/stanfordnlp/CoreNLP
+Then compiled it for Java 17
+
+Then downloaded some models from https://stanfordnlp.github.io/CoreNLP/download.html
+
+Then issued these commands to get the JARs into my maven repository:
+```
+mvn install:install-file \
+  -Dfile=stanford-corenlp-4.5.10.jar \
+  -DgroupId=edu.stanford.nlp \
+  -DartifactId=stanford-corenlp \
+  -Dversion=4.5.10 \
+  -Dpackaging=jar
+
+mvn install:install-file \
+  -Dfile=stanford-corenlp-models-current.jar \
+  -DgroupId=edu.stanford.nlp \
+  -DartifactId=stanford-corenlp-models-current \
+  -Dversion=4.5.10 \
+  -Dclassifier=models-english \
+  -Dpackaging=jar
+
+mvn install:install-file \
+  -Dfile=stanford-corenlp-4.5.10-models-english.jar \
+  -DgroupId=edu.stanford.nlp \
+  -DartifactId=stanford-corenlp \
+  -Dversion=4.5.10 \
+  -Dclassifier=models-english \
+  -Dpackaging=jar
+
+mvn install:install-file \
+  -Dfile=stanford-corenlp-4.5.10-models-english-kbp.jar \
+  -DgroupId=edu.stanford.nlp \
+  -DartifactId=stanford-corenlp \
+  -Dversion=4.5.10 \
+  -Dclassifier=models-english-kbp \
+  -Dpackaging=jar
+``` 
+
 ### The PHP web service is in the ktc-web directory. It is a Codeignite 4 / Vue project.
 It uses vite, so you need to start that also:
 ```
