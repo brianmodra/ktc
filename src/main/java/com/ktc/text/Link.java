@@ -1,7 +1,5 @@
 package com.ktc.text;
 
-import java.lang.ref.WeakReference;
-
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.ResourceFactory;
 
@@ -26,14 +24,13 @@ public class Link {
   public static final Property DENOTES = ResourceFactory.createProperty("http://www.ontologydesignpatterns.org/ont/semantics.owl#denotes");
 
   private final Property property;
-  private final WeakReference<NodeBase> source;
+  private final NodeBase source;
   private final NodeBase target;
   private final String key;
-  private WeakReference<Link> reverseLink = null;
 
   public Link(Property property, NodeBase source, NodeBase target, String key) {
     this.property = property;
-    this.source = new WeakReference<>(source);
+    this.source = source;
     this.target = target;
     this.key = key;
   }
@@ -58,23 +55,17 @@ public class Link {
     return property.getURI();
   }
 
-  public NodeBase getSource() {
-    return source.get();
-  }
+  public NodeBase getSource() { return source; }
 
   public NodeBase getTarget() {
     return target;
   }
 
-  public void setReverseLink(Link reverseLink) {
-    this.reverseLink = new WeakReference<>(reverseLink);
+  public boolean unlinkTarget() {
+    return target.removeInwardLink(this);
   }
 
-  public Link getReverseLink() {
-    return reverseLink.get();
-  }
-
-  public void removeReverseLink() {
-    reverseLink.clear();
+  public boolean unlinkSource() {
+    return source.removeLink(this);
   }
 }

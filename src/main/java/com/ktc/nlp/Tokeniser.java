@@ -31,11 +31,21 @@ public class Tokeniser {
   }
 
 
-  public SentenceText getSentence(String str, DocumentText documentText) {
+  public ArrayList<SentenceText> getSentence(String str, DocumentText documentText) {
+    class TokenLabelPair {
+      public TokenText tokenText;
+      public CoreLabel coreLabel;
+      public TokenLabelPair(TokenText tokenText, CoreLabel coreLabel) {
+        this.tokenText = tokenText;
+        this.coreLabel = coreLabel;
+      }
+    }
+
     Map<Integer, TokenText> indexedTokens = new HashMap<Integer, TokenText>();
-    ArrayList<TokenText> tokens = new ArrayList<>();
+    ArrayList<TokenLabelPair> tokens = new ArrayList<>();
 
     Consumer<CoreLabel> printToken = (CoreLabel token) -> System.out.println(token.toString() + " " + token.originalText() + " : " + token.tag() + " : " + token.ner() + " " + token.index());
+
     class TokenPair {
       public CoreLabel token;
       public TripleComponent component;
@@ -63,10 +73,12 @@ public class Tokeniser {
       System.out.println(sentence);
       for (CoreLabel token : sentence.tokens()) {
         TokenText tokenText = TokenText.create(token.originalText());
-        tokenText.addAnnotation(PennTreebankPOSTag.create(token.tag().trim()));
-        tokenText.addAnnotation(FineGrainedNERTag.create(token.ner().trim()));
+        tokenText.addAnnotation(PennTreebankPOSTag.create(token.tag()));
+        if (!token.ner().isEmpty()) {
+          tokenText.addAnnotation(FineGrainedNERTag.create(token.ner()));
+        }
         indexedTokens.put(token.index(), tokenText);
-        tokens.add(tokenText);
+        tokens.add(new TokenLabelPair(tokenText, token));
         printToken.accept(token);
       }
 
@@ -95,6 +107,10 @@ public class Tokeniser {
           triple.object.forEach((CoreLabel token) -> {
             new TokenPair(token, tripleObject).execute();
           });
+
+          tripleStatement.addChild(tripleSubject);
+          tripleStatement.addChild(triplePredicate);
+          tripleStatement.addChild(tripleObject);
         }
       }
     }
@@ -144,10 +160,27 @@ public class Tokeniser {
       }
     }
 
-    SentenceText sentence = new SentenceText();
-    for (TokenText token : tokens) {
-      sentence.addChild(token);
+    ArrayList<SentenceText> sentences = new ArrayList<>();
+    SentenceText sentence = null;
+    TokenLabelPair previousTokenLabelPair = null;
+    int lastSentenceNumber = -1;
+    for (TokenLabelPair tokenLabelPair : tokens) {
+      if (sentence == null || lastSentenceNumber != tokenLabelPair.coreLabel.sentIndex()) {
+        lastSentenceNumber = tokenLabelPair.coreLabel.sentIndex();
+        sentence = new SentenceText();
+        sentences.add(sentence);
+      }
+      if (previousTokenLabelPair != null) {
+        int spaceStart = previousTokenLabelPair.coreLabel.endPosition();
+        int spaceEnd = tokenLabelPair.coreLabel.beginPosition();
+        if (spaceStart < spaceEnd) {
+          TokenText space = TokenText.create(str.substring(spaceStart, spaceEnd));
+          sentence.addChild(space);
+        }
+      }
+      sentence.addChild(tokenLabelPair.tokenText);
+      previousTokenLabelPair = tokenLabelPair;
     }
-    return sentence;
+    return sentences;
   }
 }

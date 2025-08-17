@@ -10,7 +10,6 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
 
 public enum FineGrainedNERTag implements NodeAnnotation {
-  NONE("", "No named entity"),
   PERSON("PERSON", "Person"),
   ORGANIZATION("ORGANIZATION", "Organization"),
   LOCATION("LOCATION", "Location (unspecified type)"),
@@ -31,14 +30,14 @@ public enum FineGrainedNERTag implements NodeAnnotation {
   PERCENT("PERCENT", "Percentage"),
   ORDINAL("ORDINAL", "Ordinal number"),
   NUMBER("NUMBER", "Number"),
-  O("O", "other");
+  O("O", "");
 
   private static final Map<String, FineGrainedNERTag> valueMap = new HashMap<>();
-  private static final Property property;
+  public static final Property property;
 
   static {
     for (FineGrainedNERTag tag : values()) {
-      valueMap.put(tag.getLiteral(), tag);
+      valueMap.put(tag.value, tag);
     }
     property = ResourceFactory.createProperty(
         "http://purl.org/olia/olia.owl#hasCategory"
@@ -52,7 +51,14 @@ public enum FineGrainedNERTag implements NodeAnnotation {
   FineGrainedNERTag(String value, String description) {
     this.value = value;
     this.description = description;
-    this.literal = value.substring(0,1).toUpperCase() + value.substring(1).toLowerCase();
+    if (value.length() == 0) {
+      throw new IllegalArgumentException("value is empty");
+    }
+    if (value.length() == 1) {
+      this.literal = value;
+    } else {
+      this.literal = value.substring(0, 1).toUpperCase() + value.substring(1).toLowerCase();
+    }
   }
 
   public static FineGrainedNERTag create(String str) {
@@ -63,21 +69,30 @@ public enum FineGrainedNERTag implements NodeAnnotation {
     return tag;
   }
 
+  @Override
   public String getLiteral() {
     return literal;
   }
 
+  @Override
   public String getDescription() {
     return description;
   }
 
+  @Override
   public Resource getResource() {
     return ResourceFactory.createResource(
         "http://purl.org/olia/olia.owl#" + getLiteral()
     );
   }
 
+  @Override
   public Property getProperty() {
     return property;
+  }
+
+  @Override
+  public boolean isNLPInfo() {
+    return true;
   }
 }

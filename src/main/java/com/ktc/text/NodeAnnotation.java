@@ -7,4 +7,6 @@ public interface NodeAnnotation {
   Property getProperty();
   Resource getResource(); // can be null
   String getLiteral();
+  String getDescription();
+  boolean isNLPInfo();
 }

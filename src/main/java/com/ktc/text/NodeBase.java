@@ -1,9 +1,11 @@
 package com.ktc.text;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
@@ -57,6 +59,9 @@ public abstract class NodeBase {
   public static final Resource ELLIPSIS = ResourceFactory.createResource("http://purl.org/olia/penn.owl#Ellipsis");
   public static final Resource LEFT_BRACE = ResourceFactory.createResource("http://purl.org/olia/penn.owl#LeftBrace");
   public static final Resource RIGHT_BRACE = ResourceFactory.createResource("http://purl.org/olia/penn.owl#RightBrace");
+  public static final Resource SPACE = ResourceFactory.createResource("http://purl.org/olia/olia.owl#Space");
+  public static final Resource SPACE_TOKEN = ResourceFactory.createResource("http://purl.org/olia/olia.owl#SpaceToken");
+  public static final Resource LINE_BREAK = ResourceFactory.createResource("http://purl.org/olia/olia.owl#LineBreak");
 
   public static final Property POS = ResourceFactory.createProperty("http://persistence.uni-leipzig.org/nlp2rdf/ontologies/nif-core#PoS");
 
@@ -73,6 +78,7 @@ public abstract class NodeBase {
   protected final Resource type;
   protected final UUID id;
   protected LinkMap links;
+  protected CopyOnWriteArrayList<Link> inwardLinks = new CopyOnWriteArrayList<>();
   protected CopyOnWriteArrayList<NodeAnnotation> annotations = new CopyOnWriteArrayList<NodeAnnotation>();
   private String parentKey = null;
   private String childKey = null;
@@ -181,6 +187,14 @@ public abstract class NodeBase {
     return links.remove(property, key, targetNode);
   }
 
+  public boolean removeLink(NodeBase targetNode) {
+    return links.remove(targetNode);
+  }
+
+  public boolean removeLink(String key) {
+    return links.remove(key);
+  }
+
   public Link getLink(Property property, String key) {
     return links.getLink(property, key);
   }
@@ -193,27 +207,33 @@ public abstract class NodeBase {
     removeLink(property, key);
     Link link = new Link(property, this, targetNode, key);
     addLink(link);
+    targetNode.addInwardLink(link);
     return link;
   }
 
   public void createUniqueTwoWayLink(NodeBase targetNode, Property toProperty, String toKey, Property fromProperty, String fromKey) {
     Link to = createUniqueLink(targetNode, toProperty, toKey);
     Link from = targetNode.createUniqueLink(this, fromProperty, fromKey);
-    to.setReverseLink(from);
-    from.setReverseLink(to);
   }
 
   public Link createLink(NodeBase targetNode, Property property, String key) {
     Link link = new Link(property, this, targetNode, key);
+    targetNode.addInwardLink(link);
     addLink(link);
     return link;
   }
 
+  public void addInwardLink(Link link) {
+    inwardLinks.add(link);
+  }
+
+  public boolean removeInwardLink(Link link) {
+    return inwardLinks.remove(link);
+  }
+
   public void createTwoWayLink(NodeBase targetNode, Property toProperty, String toKey, Property fromProperty, String fromKey) {
-    Link to = createLink(targetNode, toProperty, toKey);
-    Link from = targetNode.createLink(this, fromProperty, fromKey);
-    to.setReverseLink(from);
-    from.setReverseLink(to);
+    createLink(targetNode, toProperty, toKey);
+    targetNode.createLink(this, fromProperty, fromKey);
   }
 
   protected void setParentNode(NodeBase parent) {
@@ -429,10 +449,13 @@ public abstract class NodeBase {
       addChildNodeInOrder(child, lastChild);
       return;  
     }
+    if (childKey == null) {
+      childKey = child.getKey();
+    }
     createLink(child, childProperty, child.getKey());
   }
 
-  protected void addChildNodeInOrder(NodeBase child, NodeBase afterChild) {
+  public void addChildNodeInOrder(NodeBase child, NodeBase afterChild) {
     if (child == null) {
       throw new IllegalArgumentException("Child cannot be null");
     }
@@ -514,6 +537,12 @@ public abstract class NodeBase {
       return className.substring(0, className.length() - 4).toLowerCase();
     }
     return className;
+  }
+
+  public void unlink() {
+    inwardLinks.clear();
+    links.clear();
+    setParentNode(null);
   }
 
   /**

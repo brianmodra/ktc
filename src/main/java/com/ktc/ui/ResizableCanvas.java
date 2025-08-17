@@ -30,7 +30,11 @@ class ResizableCanvas extends Canvas {
     shapes.add(shape);
   }
 
-  private void draw() {
+  public boolean remove(StyledShape shape) {
+    return shapes.remove(shape);
+  }
+
+  protected void draw() {
     gc.clearRect(0, 0, canvasWidth, canvasHeight);
     for (StyledShape shape : shapes) {
       shape.draw(gc);

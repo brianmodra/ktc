@@ -20,17 +20,15 @@ import org.apache.jena.rdf.model.ResourceFactory;
  */
 
 public enum PennTreebankPOSTag implements NodeAnnotation {
-  NONE("", ""),
-
   EXCALAMATION("!", "exclamation mark"),
-  DOUBLE_QUOTE("\"", "Quotation marks"),
+  //DOUBLE_QUOTE("\"", "Quotation marks"), this one is covered by OPENING_DOUBLE_QUOTE/CLOSING_DOUBLE_QUOTE
   HASH("#", "hash"),
   DOLLAR("$", "dollar sign"),
   PERCENT("%", "percentage mark"),
   AMPERSAND("&", "Ampersand"),
   SINGLE_QUOTE("'", "Quotation marks"),
-  OPENING_PARENTHESIS("(", "opening parenthesis"),
-  CLOSING_PARENTHESIS(")", "closing parenthesis"),
+  //OPENING_PARENTHESIS("(", "opening parenthesis"), see LRB
+  //CLOSING_PARENTHESIS(")", "closing parenthesis"), see RRB
   ASTERISK("*", "asterisk"),
   PLUS("+", "plus"),
   COMMA(",", "Comma"),
@@ -50,9 +48,9 @@ public enum PennTreebankPOSTag implements NodeAnnotation {
   UNDERSCORE("_", "underscore"),
   GRAVE("`", "grave accent"),
 
-  LEFT_HANDLEBARS("{", "left curly brace"),
+  //LEFT_HANDLEBARS("{", "left curly brace"), see LCB
   PIPE("|", "vertical bar"),
-  RIGHT_HANDLEBARS("}", "right curly brace"),
+  //RIGHT_HANDLEBARS("}", "right curly brace"), see RCB
   TILDE("~", "tilde"),
 
   EURO("€", "euro sign"),
@@ -68,10 +66,10 @@ public enum PennTreebankPOSTag implements NodeAnnotation {
   LEFT_ANGLE_QUOTE("‹", "Single left-pointing angle quotation"),
   LATIN_OE("Œ", "Latin capital ligature OE"),
   LATIN_Z("Ž", "Latin capital letter Z with caron"),
-  LEFT_SINGLE_QUOTATION_MARK("‘", "Left single quotation mark"),
+  LEFT_SINGLE_QUOTE("‘", "Left single quotation mark"),
   RIGHT_SINGLE_QUOTE("’", "Right single quotation mark"),
-  LEFT_DOUBLE_QUOTE("“", "Left double quotation mark"),
-  RIGHT_DOUBLE_QUOTE("”", "Right double quotation mark"),
+  //LEFT_DOUBLE_QUOTE("“", "Left double quotation mark"), see OPENING_DOUBLE_QUOTE
+  //RIGHT_DOUBLE_QUOTE("”", "Right double quotation mark"), see CLOSING_DOUBLE_QUOTE
   BULLET("•", "Bullet"),
   EN_DASH("–", "En dash"),
   EM_DASH("—", "Em dash"),
@@ -130,7 +128,14 @@ public enum PennTreebankPOSTag implements NodeAnnotation {
   LATIN_SMALL_LETTER_THORN("þ", "Latin small letter thorn"),
   LATIN_SMALL_LETTER_Y_WITH_DIAERESIS("ÿ", "Latin small letter y with diaeresis"),
 
-  SYMBOL("other_symbols", "other symbols"),
+  OPENING_DOUBLE_QUOTE("``", "Opening double quote"),
+  CLOSING_DOUBLE_QUOTE("''", "Closing double quote"),
+  LRB("-LRB-", "Left round bracket"),
+  RRB("-RRB-", "Right round bracket"),
+  LSB("-LSB-", "Left square bracket"),
+  RSB("-RSB-", "Right square bracket"),
+  LCB("-LCB-", "Left curly bracket"),
+  RCB("-RCB-", "Right curly bracket"),
 
   CC 	("CC", "Coordinating conjunction"),
   CD 	("CD", "Cardinal number"),
@@ -170,7 +175,7 @@ public enum PennTreebankPOSTag implements NodeAnnotation {
   WRB	("WRB", "Wh-adverb");
 
   private static Map<String,PennTreebankPOSTag> valueMap =  new HashMap<String, PennTreebankPOSTag>();
-  static Property property;
+  public static Property property;
   static {
     for (PennTreebankPOSTag tag : values()) {
       valueMap.put(tag.getLiteral(), tag);
@@ -188,30 +193,61 @@ public enum PennTreebankPOSTag implements NodeAnnotation {
   public static PennTreebankPOSTag create(String str) {
     PennTreebankPOSTag tag = valueMap.get(str);
     if (tag == null) {
-      if (str.length() != 1 ||
-          (str.charAt(0) >= 'A' && str.charAt(0) <= 'Z') ||
-          (str.charAt(0) >= 'a' && str.charAt(0) <= 'z')
-      ) {
-        throw new IllegalArgumentException(str + " is not a valid tag");
-      }
-      tag = SYMBOL;
+      throw new IllegalArgumentException(str + " is not a valid tag");
     }
     return tag;
   }
 
+  @Override
   public String getLiteral() {
     return value;
   }
 
+  @Override
   public String getDescription() {
     return description;
   }
 
+  @Override
   public Resource getResource() {
     return ResourceFactory.createResource("http://purl.org/olia/penn.owl#" + getLiteral());
   }
 
+  @Override
   public Property getProperty() {
     return property;
+  }
+
+  @Override
+  public boolean isNLPInfo() {
+    return true;
+  }
+
+  public record TagPair(PennTreebankPOSTag tag, PennTreebankPOSTag other, boolean otherToTheRight) {}
+  public TagPair pairedWith() {
+    switch (this) {
+      case OPENING_DOUBLE_QUOTE:
+        return new TagPair(OPENING_DOUBLE_QUOTE, CLOSING_DOUBLE_QUOTE, true);
+      case CLOSING_DOUBLE_QUOTE:
+        return new TagPair(CLOSING_DOUBLE_QUOTE, OPENING_DOUBLE_QUOTE, false);
+      case LRB:
+        return new TagPair(LRB, RRB, true);
+      case RRB:
+        return new TagPair(RRB, LRB, false);
+      case LSB:
+        return new TagPair(LSB, RSB, true);
+      case RSB:
+        return new TagPair(RSB, LSB, false);
+      case LCB:
+        return new TagPair(LCB, RCB, true);
+      case RCB:
+        return new TagPair(RCB, LCB, false);
+      case LEFT_SINGLE_QUOTE:
+        return new TagPair(LEFT_SINGLE_QUOTE, RIGHT_SINGLE_QUOTE, true);
+      case RIGHT_SINGLE_QUOTE:
+        return new TagPair(RIGHT_SINGLE_QUOTE, LEFT_SINGLE_QUOTE, false);
+      default:
+        return null;
+    }
   }
 }

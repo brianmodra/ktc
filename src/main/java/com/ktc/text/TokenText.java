@@ -1,15 +1,18 @@
 package com.ktc.text;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.lang.ref.WeakReference;
 
+import com.ktc.nlp.FineGrainedNERTag;
+import com.ktc.nlp.PennTreebankPOSTag;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Property;
 
 public class TokenText extends StructuredNode<TokenText, SentenceText, TokenText> {
+  protected WeakReference<Object> uiObject;
+
   private static final Map<String, Resource> TOKEN_TYPE_MAP = new HashMap<String, Resource>() {{
     put("\"", QUOTATION_MARK);
     put("!", EXCLAMATION_MARK);
@@ -37,11 +40,46 @@ public class TokenText extends StructuredNode<TokenText, SentenceText, TokenText
         .collect(Collectors.joining("|"))
   );
 
-  private final String tokenString;
+  public static class WhitespaceTraversalResult {
+    public boolean allWhitespace = true;
+    public int whitespaceCount = 0;
+    public int newlineCount = 0;
+  }
+
+  public static WhitespaceTraversalResult analyzeWhitespace(String str) {
+    if (str == null || str.isEmpty()) {
+      throw new IllegalArgumentException("String can't be null or empty");
+    }
+
+    final WhitespaceTraversalResult ret = new WhitespaceTraversalResult();
+
+    str.chars().forEach(c -> {
+      if (c == '\n') {
+        ret.newlineCount++;
+      }
+      if (Character.isWhitespace(c)) {
+        ret.whitespaceCount++;
+      } else {
+        ret.allWhitespace = false;
+      }
+    });
+
+    return ret;
+  }
+
+  private String tokenString;
 
   public TokenText(Resource type, String tokenString, UUID id) {
     super(type, id);
     this.tokenString = tokenString;
+  }
+
+  public void setUiObject(Object uiObject) {
+    this.uiObject = new WeakReference<>(uiObject);
+  }
+
+  public Object getUiObject() {
+    return uiObject.get();
   }
 
   public static TokenText create(String tokenString) {
@@ -52,11 +90,15 @@ public class TokenText extends StructuredNode<TokenText, SentenceText, TokenText
     if (id == null) {
       throw new IllegalArgumentException("ID cannot be null");
     }
+    return new TokenText(getResourceForTokenString(tokenString), tokenString, id);
+  }
+
+  public static Resource getResourceForTokenString(String tokenString) {
     if (tokenString == null || tokenString.isEmpty()) {
       throw new IllegalArgumentException("Token string cannot be null or empty");
     }
     if (tokenString.length() == 1) {
-      Resource type = switch (tokenString) {
+      return switch (tokenString) {
         case "\"" -> QUOTATION_MARK;
         case "!" -> EXCLAMATION_MARK;
         case "?" -> QUESTION_MARK;
@@ -77,18 +119,113 @@ public class TokenText extends StructuredNode<TokenText, SentenceText, TokenText
         case "}" -> RIGHT_BRACE;
         default -> WORD_TYPE;
       };
-      return new TokenText(type, tokenString, id);
     }
     if (PUNCTUATION_PATTERN.matcher(tokenString).find()) {
       if (!tokenString.startsWith("'") || tokenString.endsWith("'")) {
         throw new IllegalArgumentException("Token string cannot contain punctuation unless it is one character long, or a posessive");
       }
     }
-    return new TokenText(WORD_TYPE, tokenString, id);
+    WhitespaceTraversalResult whitespaceAnalysis = analyzeWhitespace(tokenString);
+    if (whitespaceAnalysis.allWhitespace) {
+      if (whitespaceAnalysis.newlineCount == 0) {
+        return SPACE_TOKEN;
+      }
+      return LINE_BREAK;
+    }
+    if (whitespaceAnalysis.whitespaceCount > 0) {
+      return STRING_TYPE;
+    }
+    return WORD_TYPE;
   }
 
   public String getTokenString() {
     return tokenString;
+  }
+
+  public void setTokenString(String tokenString) {
+    this.tokenString = tokenString;
+  }
+
+  public boolean isChildOf(List<Class> classes) {
+    Property childProperty = getChildPropertyOfParent();
+    if (childProperty == null) {
+      return false;
+    }
+    return inwardLinks.stream()
+        .filter((Link link) -> link.getProperty() == childProperty && classes.contains(link.getSource().getClass()))
+        .findFirst()
+        .isPresent();
+  }
+
+  public boolean hasNLPInfo() {
+    if (annotations.stream()
+        .filter((NodeAnnotation annotation) -> annotation instanceof FineGrainedNERTag || annotation instanceof PennTreebankPOSTag)
+        .findFirst()
+        .isPresent()) {
+      return true;
+    }
+    if (isChildOf(List.of(TripleObject.class, TriplePredicate.class, TripleSubject.class))) {
+      return true;
+    }
+    return false;
+  }
+
+  public boolean removeNLP() {
+    boolean removedSomething = false;
+    for (NodeAnnotation annotation : annotations) {
+      if (annotation instanceof FineGrainedNERTag || annotation instanceof PennTreebankPOSTag) {
+        if (annotations.remove(annotation)) {
+          removedSomething = true;
+        }
+      }
+    };
+    Property childProperty = getChildPropertyOfParent();
+    if (childProperty == null) {
+      return removedSomething;
+    }
+    List<Class> classes = List.of(TripleObject.class, TriplePredicate.class, TripleSubject.class);
+    for (Link link : inwardLinks) {
+      if (link.getProperty() == childProperty && classes.contains(link.getSource().getClass())) {
+        link.getSource().unlink();
+        removedSomething = true;
+      }
+    }
+    return removedSomething;
+  }
+
+  public List<NodeBase> getTripleObjectChildren() {
+    return getTripleComponentChildren(List.of(TripleObject.class));
+  }
+
+  public List<NodeBase> getTriplePredicateChildren() {
+    return getTripleComponentChildren(List.of(TriplePredicate.class));
+  }
+
+  public List<NodeBase> getTripleSubjectChildren() {
+    return getTripleComponentChildren(List.of(TripleSubject.class));
+  }
+
+  public List<NodeBase> getTripleChildren() {
+    return getTripleComponentChildren(List.of(TripleObject.class, TriplePredicate.class, TripleSubject.class));
+  }
+
+  public Property getChildPropertyOfParent() {
+    NodeBase parent = getParentNode();
+    if (parent == null) {
+      return null;
+    }
+    return parent.getChildProperty();
+  }
+
+  public List<NodeBase> getTripleComponentChildren(List<Class> classes) {
+    Property childProperty = getChildPropertyOfParent();
+    if (childProperty == null) {
+      return List.of();
+    }
+    return inwardLinks.stream()
+        .filter((Link link) -> link.getProperty() == childProperty && classes.contains(link.getSource().getClass()))
+        .map(Link::getSource)
+        .collect(Collectors.toList());
   }
 
   @Override

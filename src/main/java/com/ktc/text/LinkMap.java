@@ -1,6 +1,7 @@
 package com.ktc.text;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -53,7 +54,13 @@ public class LinkMap {
   }
 
   public boolean remove(Property property) {
-    return map.remove(property) != null;
+    boolean removedSomething = false;
+    for (Link link : map.get(property)) {
+      removedSomething = true;
+      link.unlinkTarget();
+    }
+    map.remove(property);
+    return removedSomething;
   }
 
   public boolean remove(Property property, String key) {
@@ -61,24 +68,80 @@ public class LinkMap {
     if (list == null) {
       return false;
     }
-    return list.removeIf(link -> link.getKey().equals(key));
-  }
-
-  public boolean remove(Property property, String key, NodeBase targetNode) {
-    boolean foundSome = false;
-    for (Link link : getLinks(property, key)) {
-      if (link.getTarget() == targetNode) {
-        if (LinkMap.this.remove(link)) {
-          foundSome = true;
+    boolean removedSomething = false;
+    for (Link link : list) {
+      if (link.getKey().equals(key)) {
+        if (list.remove(link)) {
+          removedSomething = true;
+          link.unlinkTarget();
         }
       }
     }
-    return foundSome;
+    return removedSomething;
+  }
+
+  public boolean remove(Property property, String key, NodeBase targetNode) {
+    boolean removedSomething = false;
+
+    final List<Link> list = map.get(property);
+    if (list == null) {
+      return false;
+    }
+    for (Link link : list) {
+      if (link.getKey() == key && link.getTarget() == targetNode) {
+        if (list.remove(link)) {
+          link.unlinkTarget();
+          removedSomething = true;
+        }
+      }
+    }
+    return removedSomething;
+  }
+
+  public boolean remove(NodeBase targetNode) {
+    boolean removedSomething = false;
+    for (List<Link> list : map.values()) {
+      for (Link link : list) {
+        if (link.getTarget() == targetNode) {
+          if (list.remove(link)) {
+            link.unlinkTarget();
+            removedSomething = true;
+          }
+        }
+      }
+    }
+    return removedSomething;
+  }
+
+  public boolean remove(String key) {
+    boolean removedSomething = false;
+    for (List<Link> list : map.values()) {
+      for (Link link : list) {
+        if (link.getKey() == key) {
+          if (list.remove(link)) {
+            link.unlinkTarget();
+            removedSomething = true;
+          }
+        }
+      }
+    }
+    return removedSomething;
   }
 
   public boolean remove(Link link) {
     Property property = link.getProperty();
-    return map.get(property).remove(link);
+    if (map.get(property).remove(link)) {
+      link.unlinkTarget();
+      return true;
+    }
+    return false;
   }
 
+  public Collection<CopyOnWriteArrayList<Link>> values() {
+    return map.values();
+  }
+
+  public void clear() {
+    map.clear();
+  }
 }

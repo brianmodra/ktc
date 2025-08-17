@@ -1,6 +1,7 @@
 package com.ktc.text;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.jena.rdf.model.Resource;
@@ -19,8 +20,8 @@ public abstract class StructuredNode<T extends NodeBase, P extends NodeBase, C e
     super.setParentNode(parent);
   }
 
-  public SentenceText getParent() {
-    return (SentenceText) super.getParentNode();
+  public P getParent() {
+    return (P) super.getParentNode();
   }
 
   protected void setNext(T next) {
@@ -59,7 +60,7 @@ public abstract class StructuredNode<T extends NodeBase, P extends NodeBase, C e
     super.addChildNode(index, child);
   }
 
-  public ArrayList<C> getChildren() {
+  public List<C> getChildren() {
     C child = firstChild();
     ArrayList<C> children = new ArrayList<>();
     while (child != null) {

@@ -1,6 +1,9 @@
 package com.ktc.text;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.jena.rdf.model.Property;
 
@@ -26,5 +29,13 @@ public class TripleStatement extends StructuredNode<TripleStatement, SentenceTex
   @Override
   public boolean parentCanBe(Class<? extends NodeBase> parentClass) {
     return parentClass == SentenceText.class;
+  }
+
+  @Override
+  public List<TripleComponent> getChildren() {
+    return allChildNodes().stream()
+        .filter(node -> node instanceof TripleComponent)
+        .map(node -> ((TripleComponent) node))
+        .collect(Collectors.toList());
   }
 }

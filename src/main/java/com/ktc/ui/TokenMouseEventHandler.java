@@ -1,36 +1,46 @@
 package com.ktc.ui;
 
 import javafx.event.EventHandler;
-import javafx.event.EventTarget;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.geometry.Bounds;
+import javafx.scene.Node;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Font;
-import javafx.scene.text.Text;
 
-public class TokenMouseEventHandler extends TokenEventHelper implements EventHandler<MouseEvent> {
+import java.util.ArrayList;
+
+public class TokenMouseEventHandler implements EventHandler<MouseEvent> {
+  Cursor cursor;
+  Pane pane;
+  ArrayList<Node> shapes = new ArrayList<>();
+
+  public TokenMouseEventHandler(Cursor cursor, Pane pane) {
+    this.cursor = cursor;
+    this.pane = pane;
+  }
+
   @Override
   public void handle(MouseEvent event) {
-    if (!init(event)) {
+    if (!cursor.prepareToHandleEvent(event)) {
       return;
     }
-    double x = event.getX();
-    cursor.setFocus(text);
-    String fullText = text.getText();
-    Font font = text.getFont();
-    xOffsetToPointer = 0.0;
-    for (charIndex = 0; charIndex < text.getText().length(); charIndex++) {
-      Text upToChar = new Text(fullText.substring(0, charIndex + 1));
-      upToChar.setFont(font);
-      double widthToChar = upToChar.getLayoutBounds().getWidth();
-      if (x < widthToChar) {
-        break;
-      }
-      xOffsetToPointer = widthToChar;
+    if (event.getEventType() == MouseEvent.MOUSE_CLICKED) {
+      cursor.updatePosition(event.getX());
+    } else if (event.getEventType() == MouseEvent.MOUSE_ENTERED) {
+      TokenShape text = cursor.getTarget();
+      Bounds bounds = text.getBoundsInParent();
+      Rectangle rect = new Rectangle(bounds.getMinX(), bounds.getMinY(), bounds.getWidth(), text.getLayoutBounds().getHeight());
+      Color fill = Color.GREEN.deriveColor(0, 1, 2, 0.2);
+      rect.setFill(fill);
+      pane.getChildren().add(rect);
+      shapes.add(rect);
+      cursor.updateTooltip();
+    } else if (event.getEventType() == MouseEvent.MOUSE_EXITED) {
+      shapes.forEach(shape -> { pane.getChildren().remove(shape); });
+      shapes.clear();
+      cursor.eraseTooltip();
     }
-
-    redraw();
 
     event.consume();
   }

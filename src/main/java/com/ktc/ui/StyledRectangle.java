@@ -22,6 +22,7 @@ public class StyledRectangle implements StyledShape {
   @Override
   public void draw(GraphicsContext gc) {
     if (shape.getWidth() > 0 && shape.getHeight() > 0) {
+      gc.setFill(paint);
       gc.fillRect(shape.getX(), shape.getY(), shape.getWidth(), shape.getHeight());
     }
   }

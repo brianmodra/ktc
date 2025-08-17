@@ -19,20 +19,33 @@ public class LiteralValuedProperty implements NodeAnnotation {
   private final Property property;
   private final String literal;
 
-  public LiteralValuedProperty(Property propert, String literal) {
-    this.property = propert;
+  public LiteralValuedProperty(Property property, String literal) {
+    this.property = property;
     this.literal = literal;
   }
 
+  @Override
   public String getLiteral() {
     return literal;
   }
 
+  @Override
   public Resource getResource() {
     return null;
   }
 
+  @Override
   public Property getProperty() {
     return property;
+  }
+
+  @Override
+  public String getDescription() {
+    return getLiteral();
+  }
+
+  @Override
+  public boolean isNLPInfo() {
+    return true;
   }
 }
